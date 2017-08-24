@@ -36,7 +36,7 @@ import numpy as np
 import requests
 
 import gippy
-from gippy.algorithms import Indices
+from gippy import algorithms
 from gips.data.core import Repository, Asset, Data
 from gips.utils import VerboseOut, settings
 from gips import utils
@@ -1022,7 +1022,7 @@ class modisData(Data):
                 refl.SetBandName("NIR", 2)
                 refl.SetNoData(-28762)
 
-                fouts = dict(Indices(refl, {'ndvi': fname}, meta))
+                fouts = dict(algorithms.indices(refl, {'ndvi': fname}, meta))
                 imgout = gippy.GeoImage(fouts['ndvi'])
                 del refl
 

@@ -24,7 +24,7 @@
 import sys
 import argparse
 
-from gips.utils import data_sources, verbose_out
+from gips import utils
 import gippy
 
 
@@ -163,9 +163,9 @@ class GIPSParser(argparse.ArgumentParser):
     def add_data_sources(self):
         """ Adds data sources to parser """
         subparser = self.add_subparsers(dest='command')
-        sources = data_sources()
+        sources = utils.data_sources()
         if len(sources) == 0:
-            verbose_out("There are no available data sources!", 1, sys.stderr)
+            utils.verbose_out("There are no available data sources!", 1, sys.stderr)
         for src, desc in sources.items():
             subparser.add_parser(src, help=desc, parents=self.parent_parsers)
 
@@ -173,7 +173,7 @@ class GIPSParser(argparse.ArgumentParser):
 def set_gippy_options(args):
     """ Set gippy options from parsed command line arguments """
     if 'verbose' in args:
-        gippy.Options.SetVerbose(args.verbose)
+        utils.verbosity(args.verbose)
     if 'format' in args:
         gippy.Options.SetDefaultFormat(args.format)
     if 'chunksize' in args:

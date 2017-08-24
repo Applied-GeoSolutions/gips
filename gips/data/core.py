@@ -38,7 +38,6 @@ import shutil
 import commands
 
 import gippy
-from gippy.algorithms import CookieCutter
 from gips import __version__
 from gips.utils import (settings, VerboseOut, RemoveFiles, File2List, List2File, Colors,
         basename, mkdir, open_vector)

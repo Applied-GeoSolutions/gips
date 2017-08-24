@@ -71,7 +71,7 @@ class sentinel2Repository(Repository):
         Returns (x0, x1, y0, y1), which is
         (west lon, east lon, south lat, north lat) in degrees.
         """
-        e = utils.open_vector(cls.get_setting('tiles'), cls._tile_attribute)[tileid].Extent()
+        e = utils.open_vector(cls.get_setting('tiles'), cls._tile_attribute)[tileid].extent()
         return e.x0(), e.x1(), e.y0(), e.y1()
 
 
@@ -323,7 +323,7 @@ class sentinel2Asset(Asset):
         # archive actions and fetch actions by concurrent processes)
         fetch_cmd_template = ('wget --no-check-certificate --user="{}" --password="{}" --timeout=30'
                               ' --no-verbose --output-document="{}" "{}"')
-        if gippy.Options.Verbose() != 0:
+        if utils.verbosity() > 0:
             fetch_cmd_template += ' --show-progress --progress=dot:giga'
         utils.verbose_out("Fetching " + output_file_name)
         with utils.error_handler("Error performing asset download '({})'".format(asset_url)):

@@ -141,14 +141,16 @@ class ProjectInventory(Inventory):
                 products[date] = set(self.data[date].products).intersection(set(self.requested_products))
             return products
 
-    def new_image(self, filename, dtype=gippy.GDT_Byte, numbands=1, nodata=None):
-        """ Create new image with the same template as the files in project """
-        img = gippy.GeoImage(self.data[self.dates[0]].open(self.requested_products[0]))
-        imgout = gippy.GeoImage(filename, img, dtype, numbands)
-        img = None
-        if nodata is not None:
-            imgout.SetNoData(nodata)
-        return imgout
+    # never seems to be called
+    #def new_image(self, filename, dtype=gippy.GDT_Byte, numbands=1, nodata=None):
+    #    pass
+    #     """ Create new image with the same template as the files in project """
+    #     img = gippy.GeoImage(self.data[self.dates[0]].open(self.requested_products[0]))
+    #     imgout = gippy.GeoImage(filename, img, dtype, numbands)
+    #     img = None
+    #     if nodata is not None:
+    #         imgout.SetNoData(nodata)
+    #     return imgout
 
     def data_size(self):
         """ Get 'shape' of inventory: #products x rows x columns """

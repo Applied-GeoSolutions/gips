@@ -37,7 +37,7 @@ import numpy
 
 import gippy
 from gips import __version__ as __gips_version__
-from gippy.algorithms import ACCA, Fmask, LinearTransform, Indices, AddShadowMask
+from gippy import algorithms
 from gips.data.core import Repository, Asset, Data
 from gips.atmosphere import SIXS, MODTRAN
 from gips.utils import RemoveFiles, basename, settings, verbose_out
@@ -798,7 +798,7 @@ class landsatData(Data):
         """Process the given indices and add their files to the inventory.
 
         Image is a GeoImage suitable for generating the indices.
-        Metadata is passed in to the gippy Indices() call.  Sensor is
+        Metadata is passed in to the gippy indices() call.  Sensor is
         used to generate index filenames and saving info about the
         product to self. Indices is a dict of desired keys; keys and
         values are the same as requested products in process().
@@ -810,7 +810,7 @@ class landsatData(Data):
             gippy_input[pt_split[0]] = temp_fp
             tempfps_to_ptypes[temp_fp] = prod_type
 
-        prodout = Indices(image, gippy_input, metadata)
+        prodout = algorithms.indices(image, gippy_input, metadata)
 
         for temp_fp in prodout.values():
             archived_fp = self.archive_temp_path(temp_fp)
@@ -992,12 +992,13 @@ class landsatData(Data):
                                 'ACCA requires all bands to have the same '
                                 'spatial resolution.  Found:\n\t' + str(resset)
                             )
-                        imgout = ACCA(reflimg, fname, s_elev, s_azim, erosion, dilation, cloudheight)
+                        imgout = algorithms.acca(reflimg, fname, s_elev,
+                                                 s_azim, erosion, dilation, cloudheight)
                     elif val[0] == 'fmask':
                         tolerance, dilation = 3, 5
                         if len(val) >= 3:
                             tolerance, dilation = [int(v) for v in val[1:3]]
-                        imgout = Fmask(reflimg, fname, tolerance, dilation)
+                        imgout = algorithms.fmask(reflimg, fname, tolerance, dilation)
 
                     elif val[0] == 'cloudmask':
                         qaimg = self._readqa()
@@ -1048,7 +1049,7 @@ class landsatData(Data):
                         tmpimg = gippy.GeoImage(reflimg)
                         tmpimg.PruneBands(['BLUE', 'GREEN', 'RED', 'NIR', 'SWIR1', 'SWIR2'])
                         arr = numpy.array(self.Asset._sensors[self.sensor_set[0]]['tcap']).astype('float32')
-                        imgout = LinearTransform(tmpimg, fname, arr)
+                        imgout = algorithms.linear_transform(tmpimg, fname, arr)
                         outbands = ['Brightness', 'Greenness', 'Wetness', 'TCT4', 'TCT5', 'TCT6']
                         for i in range(0, imgout.NumBands()):
                             imgout.SetBandName(outbands[i], i + 1)
@@ -1151,6 +1152,8 @@ class landsatData(Data):
                         erosion, dilation, cloudheight = 5, 10, 4000
                         if len(val) >= 4:
                             erosion, dilation, cloudheight = [int(v) for v in val[1:4]]
+                        raise NotImplementedError("Not sure what happened to"
+                                                  " gippy.algorithms.AddShadowMask")
                         imgout = AddShadowMask(
                             abimg, imgout, 0, s_elev, s_azim, erosion,
                             dilation, cloudheight, {'notes': 'dev-version'}
