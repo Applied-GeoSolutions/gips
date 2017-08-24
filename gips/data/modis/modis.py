@@ -94,7 +94,7 @@ class modisAsset(Asset):
             'startdate': datetime.date(2000, 2, 18),
             'latency': -15
         },
-        'MOD09Q1': {
+        'MOD09Q1': { # TODO currently not fetchable?
             'pattern': '^MOD09Q1' + _asset_re_tail,
             'url': 'https://e4ftl01.cr.usgs.gov/MOLT/MOD09Q1.006',
             'startdate': datetime.date(2000, 2, 18),
@@ -380,6 +380,7 @@ class modisData(Data):
     @Data.proc_temp_dir_manager
     def process(self, *args, **kwargs):
         """Produce requested products."""
+        # TODO 600 lines is too much for a single method
         products = super(modisData, self).process(*args, **kwargs)
         if len(products) == 0:
             return
@@ -431,24 +432,24 @@ class modisData(Data):
                 os.symlink(allsds[0], fname)
                 imgout = gippy.GeoImage(fname)
 
-            if val[0] == "refl":
-                # NOTE this code is unreachable (no refl entry in _products)
-                if versions[asset] != 6:
-                    raise Exception('product version not supported')
-                sensor = 'MCD'
-                fname = '%s_%s_%s.tif' % (bname, sensor, key)
-                img = gippy.GeoImage(sds[7:])
-                nodata = img[0].NoDataValue()
-                gain = img[0].Gain()
-                offset = img[0].Offset()
-                imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, 6)
-                imgout.SetNoData(nodata)
-                imgout.SetOffset(offset)
-                imgout.SetGain(gain)
-                for i in range(6):
-                    data = img[i].Read()
-                    imgout[i].Write(data)
-                del img
+            # TODO unreachable code should be made reachable or else deleted
+            # if val[0] == "refl":
+            #     if versions[asset] != 6:
+            #         raise Exception('product version not supported')
+            #     sensor = 'MCD'
+            #     fname = '%s_%s_%s.tif' % (bname, sensor, key)
+            #     img = gippy.GeoImage(sds[7:])
+            #     nodata = img[0].NoDataValue()
+            #     gain = img[0].Gain()
+            #     offset = img[0].Offset()
+            #     imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, 6)
+            #     imgout.set_nodata(nodata)
+            #     imgout.set_offset(offset)
+            #     imgout.set_gain(gain)
+            #     for i in range(6):
+            #         data = img[i].Read()
+            #         imgout[i].write(data)
+            #     del img
 
             if val[0] == "quality":
                 if versions[asset] != 6:
@@ -459,26 +460,17 @@ class modisData(Data):
             # LAND VEGETATION INDICES PRODUCT
             # now with QC layer!
             if val[0] == "indices":
+                if versions[asset] != 6:
+                    raise Exception('product version not supported')
+                # TODO it's likely this stanza can be refactored for a huge gain in clarity
                 VERSION = "2.0"
                 meta['VERSION'] = VERSION
                 refl = gippy.GeoImage(allsds)
                 missing = 32767
 
-                if versions[asset] == 6:
-                    redimg = refl[7].Read()
-                    nirimg = refl[8].Read()
-                    bluimg = refl[9].Read()
-                    grnimg = refl[10].Read()
-                    mirimg = refl[11].Read()
-                    swrimg = refl[12].Read()  # swir1, formerly swir2
-                    redqcimg = refl[0].Read()
-                    nirqcimg = refl[1].Read()
-                    bluqcimg = refl[2].Read()
-                    grnqcimg = refl[3].Read()
-                    mirqcimg = refl[4].Read()
-                    swrqcimg = refl[5].Read()
-                else:
-                    raise Exception('product version not supported')
+                (redqcimg, nirqcimg, bluqcimg, grnqcimg, mirqcimg, swrqcimg,
+                 redimg,   nirimg,   bluimg,   grnimg,   mirimg,   swrimg,
+                ) = [refl[n].read() for n in range(13) if n != 6]
 
                 redimg[redimg < 0.0] = 0.0
                 nirimg[nirimg < 0.0] = 0.0
@@ -556,30 +548,29 @@ class modisData(Data):
                 qc[w255] = missing  # mark as missing if any are missing
 
                 # create output gippy image
-                print("writing", fname)
-                imgout = gippy.GeoImage(fname, refl, gippy.GDT_Int16, 7)
+                imgout = gippy.GeoImage.create_from(refl, fname, 7, 'int16')
                 del refl
 
-                imgout.SetNoData(missing)
-                imgout.SetOffset(0.0)
-                imgout.SetGain(0.0001)
-                imgout[6].SetGain(1.0)
+                imgout.set_nodata(missing)
+                imgout.set_offset(0.0)
+                imgout.set_gain(0.0001)
+                imgout[6].set_gain(1.0)
 
-                imgout[0].Write(ndvi)
-                imgout[1].Write(lswi)
-                imgout[2].Write(vari)
-                imgout[3].Write(brgt)
-                imgout[4].Write(satvi)
-                imgout[5].Write(evi)
-                imgout[6].Write(qc)
+                imgout[0].write(ndvi)
+                imgout[1].write(lswi)
+                imgout[2].write(vari)
+                imgout[3].write(brgt)
+                imgout[4].write(satvi)
+                imgout[5].write(evi)
+                imgout[6].write(qc)
 
-                imgout.SetBandName('NDVI', 1)
-                imgout.SetBandName('LSWI', 2)
-                imgout.SetBandName('VARI', 3)
-                imgout.SetBandName('BRGT', 4)
-                imgout.SetBandName('SATVI', 5)
-                imgout.SetBandName('EVI', 6)
-                imgout.SetBandName('QC', 7)
+                imgout.set_bandname('NDVI', 1)
+                imgout.set_bandname('LSWI', 2)
+                imgout.set_bandname('VARI', 3)
+                imgout.set_bandname('BRGT', 4)
+                imgout.set_bandname('SATVI', 5)
+                imgout.set_bandname('EVI', 6)
+                imgout.set_bandname('QC', 7)
 
             # CLOUD MASK PRODUCT
             if val[0] == "clouds":
@@ -588,7 +579,7 @@ class modisData(Data):
 
                 img = gippy.GeoImage(allsds)
 
-                data = img[0].Read()
+                data = img[0].read()
                 clouds = np.zeros_like(data)
 
                 clouds[data == 0] = 127
@@ -604,13 +595,13 @@ class modisData(Data):
                 clouds[data == 255] = 127
 
                 # create output gippy image
-                imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 1)
+                imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
                 del img
-                imgout.SetNoData(127)
-                imgout.SetOffset(0.0)
-                imgout.SetGain(1.0)
-                imgout.SetBandName('Cloud Cover', 1)
-                imgout[0].Write(clouds)
+                imgout.set_nodata(127)
+                imgout.set_offset(0.0)
+                imgout.set_gain(1.0)
+                imgout.set_bandname('Cloud Cover', 1)
+                imgout[0].write(clouds)
 
             # SNOW/ICE COVER PRODUCT - FRACTIONAL masked with binary
             if val[0] == "fsnow":
@@ -635,8 +626,8 @@ class modisData(Data):
                 for iband, band in enumerate(availbands):
 
                     # get the data values for both bands
-                    cover = img[2 * iband].Read()
-                    frac = img[2 * iband + 1].Read()
+                    cover = img[2 * iband].read()
+                    frac = img[2 * iband + 1].read()
 
                     # check out frac
                     wbad1 = np.where((frac == 200) | (frac == 201) | (frac == 211) |
@@ -724,16 +715,14 @@ class modisData(Data):
                 meta['NUMVALIDCOVER'] = numvalidcover
 
                 # create output gippy image
-                imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 1)
+                imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
                 del img
-                imgout.SetNoData(127)
-                imgout.SetOffset(0.0)
-                imgout.SetGain(1.0)
-                # imgout.SetBandName('Snow Cover', 1)
-                imgout.SetBandName('Fractional Snow Cover', 1)
+                imgout.set_nodata(127)
+                imgout.set_offset(0.0)
+                imgout.set_gain(1.0)
+                imgout.set_bandname('Fractional Snow Cover', 1)
 
-                # imgout[0].Write(coverout)
-                imgout[0].Write(fracout)
+                imgout[0].write(fracout)
 
             ###################################################################
             # SNOW/ICE COVER PRODUCT
@@ -759,8 +748,8 @@ class modisData(Data):
                 for iband, band in enumerate(availbands):
 
                     # get the data values for both bands
-                    cover = img[2 * iband].Read()
-                    frac = img[2 * iband + 1].Read()
+                    cover = img[2 * iband].read()
+                    frac = img[2 * iband + 1].read()
 
                     # check out frac
                     wbad1 = np.where((frac == 200) | (frac == 201) | (frac == 211) |
@@ -844,16 +833,16 @@ class modisData(Data):
                 meta['NUMVALIDCOVER'] = numvalidcover
 
                 # create output gippy image
-                imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 2)
+                imgout = gippy.GeoImage.create_from(img, fname, 2, 'byte')
                 del img
-                imgout.SetNoData(127)
-                imgout.SetOffset(0.0)
-                imgout.SetGain(1.0)
-                imgout.SetBandName('Snow Cover', 1)
-                imgout.SetBandName('Fractional Snow Cover', 2)
+                imgout.set_nodata(127)
+                imgout.set_offset(0.0)
+                imgout.set_gain(1.0)
+                imgout.set_bandname('Snow Cover', 1)
+                imgout.set_bandname('Fractional Snow Cover', 2)
 
-                imgout[0].Write(coverout)
-                imgout[1].Write(fracout)
+                imgout[0].write(coverout)
+                imgout[1].write(fracout)
 
             ###################################################################
             # TEMPERATURE PRODUCT (DAILY)
@@ -883,14 +872,14 @@ class modisData(Data):
                 qcbands = gippy.GeoImage(qcsds)
                 hourbands = gippy.GeoImage(hoursds)
 
-                imgout = gippy.GeoImage(fname, tempbands, gippy.GDT_UInt16, 5)
-                imgout.SetNoData(65535)
-                imgout.SetGain(0.02)
+                imgout = gippy.GeoImage.create_from(tempbands, fname, 5, 'uint16')
+                imgout.set_nodata(65535)
+                imgout.set_gain(0.02)
 
                 # there are four temperature bands
                 for iband, band in enumerate(availbands):
                     # get meta name template info
-                    basename = tempbands[iband].Basename()
+                    basename = tempbands[iband].basename()
                     platform = self.Asset._sensors[basename[:3]]['description']
 
                     if basename.find('daytime'):
@@ -900,7 +889,8 @@ class modisData(Data):
                     else:
                         raise Exception('%s appears to be an invalid MODIS temperature project' % basename)
 
-                    qc = qcbands[iband].Read()
+                    # for some reason it comes out as float64 even though the band's type is uint8
+                    qc = qcbands[iband].read().astype('uint8')
 
                     # first two bits are 10 or 11
                     newmaskbad = binmask(qc, 2)
@@ -940,8 +930,8 @@ class modisData(Data):
                     meta[metaname] = str(numbest)
 
                     # overpass time
-                    hournodatavalue = hourbands[iband].NoDataValue()
-                    hour = hourbands[iband].Read()
+                    hournodatavalue = hourbands[iband].nodata()
+                    hour = hourbands[iband].read()
                     hour = hour[hour != hournodatavalue]
                     hourmean = 0
                     with utils.error_handler("Couldn't compute hour mean for " + fname,
@@ -952,15 +942,15 @@ class modisData(Data):
                     metaname = metaname.upper()
                     meta[metaname] = str(hourmean)
 
-                    tempbands[iband].Process(imgout[band])
+                    tempbands[iband].save(imgout[band])
 
-                imgout[4].SetGain(1.0)
-                imgout[4].Write(bestmask)
-                imgout.SetBandName('Temperature Daytime Terra', 1)
-                imgout.SetBandName('Temperature Nighttime Terra', 2)
-                imgout.SetBandName('Temperature Daytime Aqua', 3)
-                imgout.SetBandName('Temperature Nighttime Aqua', 4)
-                imgout.SetBandName('Temperature Best Quality', 5)
+                imgout[4].set_gain(1.0)
+                imgout[4].write(bestmask)
+                imgout.set_bandname('Temperature Daytime Terra', 1)
+                imgout.set_bandname('Temperature Nighttime Terra', 2)
+                imgout.set_bandname('Temperature Daytime Aqua', 3)
+                imgout.set_bandname('Temperature Nighttime Aqua', 4)
+                imgout.set_bandname('Temperature Best Quality', 5)
                 del tempbands
                 del qcbands
                 del hourbands
@@ -985,14 +975,14 @@ class modisData(Data):
 
                 hourbands = gippy.GeoImage(hoursds)
 
-                imgout = gippy.GeoImage(fname, hourbands, gippy.GDT_Byte, 4)
-                imgout.SetNoData(0)
-                imgout.SetGain(0.1)
+                imgout = gippy.GeoImage.create_from(hourbands, fname, 4, 'byte')
+                imgout.set_nodata(0)
+                imgout.set_gain(0.1)
 
                 # there are four temperature bands
                 for iband, band in enumerate(availbands):
                     # get meta name template info
-                    basename = hourbands[iband].Basename()
+                    basename = hourbands[iband].basename()
                     platform = self.Asset._sensors[basename[:3]]['description']
 
                     if basename.find('daytime'):
@@ -1000,30 +990,30 @@ class modisData(Data):
                     elif basename.find('nighttime'):
                         dayornight = 'night'
                     else:
-                        raise Exception('%s appears to be an invalid MODIS temperature project' % basename)
+                        raise Exception('{} appears to be an invalid MODIS'
+                                        ' temperature project'.format(basename))
 
-                    hourbands[iband].Process(imgout[band])
+                    hourbands[iband].save(imgout[band])
 
-                imgout.SetBandName('Observation Time Daytime Terra', 1)
-                imgout.SetBandName('Observation Time Nighttime Terra', 2)
-                imgout.SetBandName('Observation Time Daytime Aqua', 3)
-                imgout.SetBandName('Observation Time Nighttime Aqua', 4)
+                imgout.set_bandname('Observation Time Daytime Terra', 1)
+                imgout.set_bandname('Observation Time Nighttime Terra', 2)
+                imgout.set_bandname('Observation Time Daytime Aqua', 3)
+                imgout.set_bandname('Observation Time Nighttime Aqua', 4)
                 del hourbands
 
             ###################################################################
             # NDVI (8-day) - Terra only
             if val[0] == "ndvi8":
-                # NOTE this code is unreachable currently; see _products above.
                 VERSION = "1.0"
                 meta['VERSION'] = VERSION
 
                 refl = gippy.GeoImage(allsds)
-                refl.SetBandName("RED", 1)
-                refl.SetBandName("NIR", 2)
-                refl.SetNoData(-28762)
+                refl.set_bandname("RED", 1)
+                refl.set_bandname("NIR", 2)
+                refl.set_nodata(-28762)
 
-                fouts = dict(algorithms.indices(refl, {'ndvi': fname}, meta))
-                imgout = gippy.GeoImage(fouts['ndvi'])
+                # meta should be added below
+                imgout = algorithms.indices(refl, ['ndvi'], fname)
                 del refl
 
             # TEMPERATURE PRODUCT (8-day) - Terra only
@@ -1038,7 +1028,7 @@ class modisData(Data):
 
             # set metadata
             meta = {k: str(v) for k, v in meta.iteritems()}
-            imgout.SetMeta(meta)
+            imgout.add_meta(meta)
 
             # add product to inventory
             archive_fp = self.archive_temp_path(fname)

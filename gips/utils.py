@@ -306,7 +306,7 @@ def open_vector(fname, key="", where=''):
         filename = ("PG:dbname=%s host=%s port=%s user=%s password=%s" %
                     (db['NAME'], db['HOST'], db['PORT'], db['USER'], db['PASSWORD']))
         vector = GeoVector(filename, parts[1])
-        vector.SetPrimaryKey(key)
+        vector.set_primary_key(key)
     if where != '':
         # return array of features
         return vector.where(where)

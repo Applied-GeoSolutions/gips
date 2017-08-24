@@ -181,15 +181,15 @@ class Repository(object):
 
         # open tiles vector
         v = open_vector(cls.get_setting('tiles'))
-        shp = ogr.Open(v.Filename())
-        if v.LayerName() == '':
+        shp = ogr.Open(v.filename())
+        if v.layer_name() == '':
             layer = shp.GetLayer(0)
         else:
-            layer = shp.GetLayer(v.LayerName())
+            layer = shp.GetLayer(v.layer_name())
 
         # create and warp site geometry
-        ogrgeom = ogr.CreateGeometryFromWkt(vector.WKT())
-        srs = osr.SpatialReference(vector.Projection())
+        ogrgeom = ogr.CreateGeometryFromWkt(vector.geometry())
+        srs = osr.SpatialReference(vector.srs())
         trans = osr.CoordinateTransformation(srs, layer.GetSpatialRef())
         ogrgeom.Transform(trans)
         # convert to shapely
