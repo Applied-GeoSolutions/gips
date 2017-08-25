@@ -676,14 +676,18 @@ class Data(object):
             if not os.path.exists(fout) or overwrite:
                 with utils.error_handler('Problem creating ' + fout, continuable=True):
                     if site is not None:
+                        raise NotImplementedError(
+                                "Copying tiles using a vector is not supported;"
+                                " See https://github.com/Applied-GeoSolutions/gips/issues/378")
                         # warp just this tile
                         resampler = ['near', 'bilinear', 'cubic']
-                        cmd = 'gdalwarp %s %s -t_srs "%s" -tr %s %s -r %s' % \
-                               (fin, fout, site.Projection(), res[0], res[1], resampler[interpolation])
+                        cmd = "gdalwarp {} {} -t_srs '{}' -tr {} {} -r {}".format(
+                            fin, fout, site.srs(), res[0], res[1], resampler[interpolation]
+                        )
                         print cmd
                         #result = commands.getstatusoutput(cmd)
                     else:
-                        gippy.GeoImage(fin).Process(fout)
+                        gippy.GeoImage(fin).save(fout)
                         #shutil.copyfile(fin, fout)
         procstr = 'copied' if site is None else 'warped'
         VerboseOut('%s tile %s: %s files %s' % (self.date, self.id, len(products.requested), procstr))

@@ -77,6 +77,8 @@ class Tiles(object):
         """For each product, combine its tiles into a single mosaic.
 
         Warp if res provided."""
+        if alltouch:
+            raise NotImplmentedError("alltouch not supported by gippy 1.0")
         if self.spatial.site is None:
             raise Exception('Site required for creating mosaics')
         start = datetime.now()
@@ -92,14 +94,13 @@ class Tiles(object):
             if not os.path.exists(fout) or overwrite:
                 with utils.error_handler("Error mosaicking " + fout, continuable=True):
                     filenames = [self.tiles[t].filenames[(sensor, product)] for t in self.tiles]
-                    images = gippy.GeoImages(filenames)
-                    if self.spatial.site is not None and res is not None:
-                        algorithms.cookie_cutter(
-                            images, self.spatial.site, fout, res[0], res[1],
-                            crop, interpolation, {}, alltouch,
-                        )
-                    else:
+                    images = [gippy.GeoImage(f) for f in filenames]
+                    if None in (res, self.spatial.site):
                         mosaic(images, fout, self.spatial.site)
+                    else:
+                        # "" == default to the projection used by the GeoFeature self.spatial.site
+                        algorithms.cookie_cutter(images, fout, self.spatial.site, crop, "",
+                                                 res[0], res[1], interpolation)
         t = datetime.now() - start
         VerboseOut('%s: created project files for %s tiles in %s' % (self.date, len(self.tiles), t), 2)
 

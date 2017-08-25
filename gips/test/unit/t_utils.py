@@ -118,7 +118,7 @@ def t_set_error_handler(restore_error_handler):
 def t_report_error(mocker, verbosity, print_exc_call_cnt):
     """Test GIPS' general purpose error reporting."""
     mocker.patch.object(utils, 'verbosity').return_value = verbosity
-    m_print_exc = mocker.patch.object(utils.traceback, 'print_exc')
+    m_print_exc = mocker.patch.object(utils.traceback, 'print_exception')
     m_verbose_out = mocker.patch.object(utils, 'verbose_out')
 
     utils.report_error(Exception('blarg'), 'error message here')

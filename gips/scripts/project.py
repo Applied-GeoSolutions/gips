@@ -41,6 +41,8 @@ def main():
     parser0.add_project_parser()
     parser0.add_warp_parser()
     args = parser0.parse_args()
+    if args.alltouch:
+        raise NotImplementedError("--alltouch not supported due to gippy 1.0 incompatibility")
 
     cls = utils.gips_script_setup(args.command, args.stop_on_error)
     print title
@@ -59,7 +61,7 @@ def main():
             suffix = '' if args.suffix == '' else '_' + args.suffix
             res = '' if args.res is None else '_%sx%s' % (args.res[0], args.res[1])
             bname = (
-                extents[0].site.LayerName() +
+                extents[0].site.layer_name() +
                 key + res + '_' + args.command + suffix
             )
             tld = os.path.join(args.outdir, bname)
@@ -67,7 +69,7 @@ def main():
         for extent in extents:
             t_extent = TemporalExtent(args.dates, args.days)
             inv = DataInventory(cls, extent, t_extent, **vars(args))
-            datadir = os.path.join(tld, extent.site.Value())
+            datadir = os.path.join(tld, extent.site.value())
             if inv.numfiles > 0:
                 inv.mosaic(
                     datadir=datadir, tree=args.tree, overwrite=args.overwrite,

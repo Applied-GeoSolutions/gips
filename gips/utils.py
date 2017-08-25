@@ -346,37 +346,41 @@ def transform(filename, srs):
 def crop2vector(img, vector):
     """ Crop a GeoImage down to a vector - only used by mosaic """
     # transform vector to srs of image
-    vecname = transform(vector.Filename(), img.Projection())
+    ifn = os.path.basename(img.filename())
+    vfn = os.path.basename(vector.filename())
+    verbose_out('Cropping {} to vector {}'.format(ifn, vfn), 4)
+    vecname = transform(vector.filename(), img.srs())
     warped_vec = open_vector(vecname)
     # rasterize the vector
     td = tempfile.mkdtemp()
-    mask = gippy.GeoImage(os.path.join(td, vector.LayerName()), img, gippy.GDT_Byte, 1)
-    maskname = mask.Filename()
-    mask = None
-    cmd = 'gdal_rasterize -at -burn 1 -l %s %s %s' % (warped_vec.LayerName(), vecname, maskname)
+    fname = os.path.join(td, vector.layer_name())
+    mask = gippy.GeoImage.create_from(img, fname, 7, 'byte')
+    maskname = mask.filename()
+    mask = None # hopefully convince the garbage collector to free some memory
+    cmd = 'gdal_rasterize -at -burn 1 -l %s %s %s' % (warped_vec.layer_name(), vecname, maskname)
     result = commands.getstatusoutput(cmd)
     VerboseOut('%s: %s' % (cmd, result), 4)
     mask = gippy.GeoImage(maskname)
-    img.AddMask(mask[0]).Process().ClearMasks()
+    img.add_mask(mask[0]).save(img.filename()).clear_masks()
     mask = None
     shutil.rmtree(os.path.dirname(maskname))
     shutil.rmtree(os.path.dirname(vecname))
-    # VerboseOut('Cropped to vector in %s' % (datetime.now() - start), 3)
+    verbose_out('Finished cropping {} to vector {}'.format(ifn, vfn), 4)
     return img
 
 
 def mosaic(images, outfile, vector):
     """ Mosaic multiple files together, but do not warp """
-    nd = images[0][0].NoDataValue()
-    srs = images[0].Projection()
+    nd = images[0][0].nodata()
+    srs = images[0].srs()
     # check they all have same projection
-    filenames = [images[0].Filename()]
-    for f in range(1, images.NumImages()):
-        if images[f].Projection() != srs:
+    filenames = [images[0].filename()]
+    for f in range(1, len(images)):
+        if images[f].srs() != srs:
             raise Exception("Input files have non-matching projections and must be warped")
-        filenames.append(images[f].Filename())
+        filenames.append(images[f].filename())
     # transform vector to image projection
-    geom = wktloads(transform_shape(vector.WKT(), vector.Projection(), srs))
+    geom = wktloads(transform_shape(vector.geometry(), vector.srs(), srs))
 
     extent = geom.bounds
     ullr = "%f %f %f %f" % (extent[0], extent[3], extent[2], extent[1])
@@ -387,9 +391,15 @@ def mosaic(images, outfile, vector):
     result = commands.getstatusoutput(cmd)
     VerboseOut('%s: %s' % (cmd, result), 4)
     imgout = gippy.GeoImage(outfile, True)
-    for b in range(0, images[0].NumBands()):
-        imgout[b].CopyMeta(images[0][b])
-    imgout.CopyColorTable(images[0])
+    for b in range(0, images[0].nbands()):
+        imgout[b].add_meta(images[0][b].meta())
+        # TODO gippy 1.0 supports add_colortable and clear_colortable but there's no way to
+        # get the colortable, and CopyColorTable is no longer supported; what's needed is:
+        # imgout[b].add_colortbale(images[0][b].colortable())
+    # original was:
+    # imgout.CopyColorTable(images[0])
+    verbose_out("Not copying color table to {};"
+                " not supported by gippy 1.0".format(os.path.basename(outfile)), 2)
     return crop2vector(imgout, vector)
 
 
@@ -438,7 +448,7 @@ def report_error(error, msg_prefix, show_tb=True):
     it via the GIPS global verbosity setting."""
     if show_tb and verbosity() >= _traceback_verbosity:
         verbose_out(msg_prefix + ':', 1, stream=sys.stderr)
-        traceback.print_exc()
+        traceback.print_exception(*getattr(error, '_exc_info', sys.exc_info()))
     else:
         verbose_out(msg_prefix + ': ' + str(error), 1, stream=sys.stderr)
 
@@ -477,6 +487,7 @@ def cli_error_handler(msg_prefix='Error', continuable=False):
     try:
         yield
     except Exception as e:
+        e._exc_info = sys.exc_info() # save it for reporting later
         e.msg_prefix = msg_prefix # for use by gips_exit
         _accumulated_errors.append(e)
         if continuable and not _stop_on_error:
