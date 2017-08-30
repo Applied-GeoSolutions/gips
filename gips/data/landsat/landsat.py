@@ -34,19 +34,16 @@ import tempfile
 import tarfile
 
 import numpy
-
 import gippy
-from gips import __version__ as __gips_version__
 from gippy import algorithms
+from usgs import api
+from homura import download
+
 from gips.data.core import Repository, Asset, Data
 from gips.atmosphere import SIXS, MODTRAN
 from gips.utils import RemoveFiles, basename, settings, verbose_out
 from gips import utils
 
-from usgs import api
-from homura import download
-
-from pdb import set_trace
 
 
 requirements = ['Py6S>=1.5.0']
@@ -674,11 +671,11 @@ class landsatData(Data):
         ACOLITE_NDV = 1.875 * 2 ** 122
         # mapping from dtype to gdal type and nodata value
         IMG_PARAMS = {
-            'float32': (gippy.GDT_Float32, -32768.),
-            'int16': (gippy.GDT_Int16, -32768),
-            'uint8': (gippy.GDT_Byte, 1),
+            'float32': ('float32', -32768.),
+            'int16': ('int16', -32768),
+            'uint8': ('byte', 1),
         }
-        imeta = products.pop('meta')
+        imeta = products.pop('meta') # see below for possible use of imeta
 
         # TODO: add 'outdir' to `gips.data.core.Asset.extract` method
         # EXTRACT ASSET
@@ -758,19 +755,18 @@ class landsatData(Data):
             dtype, missing = IMG_PARAMS[npdtype]
             gain = products[key].get('gain', 1.0)
             offset = products[key].get('offset', 0.0)
-            imgout = gippy.GeoImage(ofname, tmp, dtype, len(bands))
+            imgout = gippy.GeoImage.create_from(tmp, ofname, len(bands), dtype)
             # # TODO: add units to products dictionary and use here.
             # imgout.SetUnits(products[key]['units'])
-            pmeta = dict()
-            pmeta.update(imeta)
             pmeta = {
                 mdi: products[key][mdi]
                 for mdi in ['acolite-key', 'description']
             }
+            # pmeta.update(imeta) # TODO this was dead code, uncomment?
             pmeta['source_asset'] = os.path.basename(asset.filename)
-            imgout.SetMeta(pmeta)
+            imgout.add_meta(pmeta)
             for i, b in enumerate(bands):
-                imgout.SetBandName(str(b), i + 1)
+                imgout.set_bandname(str(b), i + 1)
 
             for i, b in enumerate(bands):
                 var = dsroot.variables[b][:]
@@ -784,14 +780,14 @@ class landsatData(Data):
                 # if key == 'rhow':
                 #     set_trace()
                 arr[mask] = ((arr[mask] - offset) / gain)
-                imgout[i].Write(arr.astype(npdtype))
+                imgout[i].write(arr.astype(npdtype))
 
-            prodout[key] = imgout.Filename()
+            prodout[key] = imgout.filename()
             imgout = None
             imgout = gippy.GeoImage(ofname, True)
-            imgout.SetGain(gain)
-            imgout.SetOffset(offset)
-            imgout.SetNoData(missing)
+            imgout.set_gain(gain)
+            imgout.set_offset(offset)
+            imgout.set_nodata(missing)
         return prodout
 
     def _process_indices(self, image, metadata, sensor, indices):
@@ -803,23 +799,25 @@ class landsatData(Data):
         product to self. Indices is a dict of desired keys; keys and
         values are the same as requested products in process().
         """
-        gippy_input = {} # map prod types to temp output filenames for feeding to gippy
-        tempfps_to_ptypes = {} # map temp output filenames to prod types, for AddFile
-        for prod_type, pt_split in indices.items():
-            temp_fp = self.temp_product_filename(sensor, prod_type)
-            gippy_input[pt_split[0]] = temp_fp
-            tempfps_to_ptypes[temp_fp] = prod_type
-
-        prodout = algorithms.indices(image, gippy_input, metadata)
-
-        for temp_fp in prodout.values():
+        verbose_out("Starting on {} indices: {}".format(len(indices), indices.keys()), 2)
+        for prod_and_args, split_p_and_a in indices.items():
+            verbose_out("Starting on {}".format(prod_and_args), 3)
+            temp_fp = self.temp_product_filename(sensor, prod_and_args)
+            # indices() assumes many indices per file; we just want one
+            imgout = algorithms.indices(image, [split_p_and_a[0]], temp_fp)
+            imgout.add_meta(metadata)
             archived_fp = self.archive_temp_path(temp_fp)
-            self.AddFile(sensor, tempfps_to_ptypes[temp_fp], archived_fp)
+            self.AddFile(sensor, prod_and_args, archived_fp)
 
+    @classmethod
+    def set_band_names(cls, geo_image, names):
+        for i in range(len(geo_image)):
+            geo_image.set_bandname(names[i], i + 1)
 
     @Data.proc_temp_dir_manager
     def process(self, products=None, overwrite=False, **kwargs):
         """ Make sure all products have been processed """
+        verbose_out('starting landsat processing!', 3, 'stderr')
         products = super(landsatData, self).process(products, overwrite, **kwargs)
         if len(products) == 0:
             return
@@ -833,11 +831,12 @@ class landsatData(Data):
         if assets == set(['C1', 'DN']):
             asset = list(assets.intersection(self.assets.keys()))[0]
         else:
-            if len(assets) != 1:
+            if len(assets) > 1:
                 raise Exception('This driver does not support creation of products'
                                 ' from different Assets at the same time')
-
             asset = list(assets)[0]
+
+        a_obj = self.assets[asset] # TODO replace the latter with the former
 
         # TODO: De-hack this
         # Better approach, but needs some thought, is to loop over assets
@@ -866,10 +865,10 @@ class landsatData(Data):
                 if val[0] == "ndvi8sr":
                     img = gippy.GeoImage([imgpaths['sr_band4'], imgpaths['sr_band5']])
 
-                    missing = float(img[0].NoDataValue())
+                    missing = float(img[0].nodata())
 
-                    red = img[0].Read().astype('float32')
-                    nir = img[1].Read().astype('float32')
+                    red = img[0].read().astype('float32')
+                    nir = img[1].read().astype('float32')
 
                     wvalid = numpy.where((red != missing) & (nir != missing) & (red + nir != 0.0))
 
@@ -886,17 +885,17 @@ class landsatData(Data):
                     ndvi[wvalid] = (nir[wvalid] - red[wvalid])/(nir[wvalid] + red[wvalid])
 
                     verbose_out("writing " + fname, 2)
-                    imgout = gippy.GeoImage(fname, img, gippy.GDT_Float32, 1)
-                    imgout.SetNoData(-9999.)
-                    imgout.SetOffset(0.0)
-                    imgout.SetGain(1.0)
-                    imgout.SetBandName('NDVI', 1)
-                    imgout[0].Write(ndvi)
+                    imgout = gippy.GeoImage.create_from(img, fname, img, 1, 'float32')
+                    imgout.set_nodata(-9999.)
+                    imgout.set_offset(0.0)
+                    imgout.set_gain(1.0)
+                    imgout.set_bandname('NDVI', 1)
+                    imgout[0].write(ndvi)
 
                 if val[0] == "landmask":
                     img = gippy.GeoImage([imgpaths['cfmask'], imgpaths['cfmask_conf']])
 
-                    cfmask = img[0].Read()
+                    cfmask = img[0].read()
                     # array([  0,   1,   2,   3,   4, 255], dtype=uint8)
                     # 0 means clear! but I want 1 to mean clear
 
@@ -905,18 +904,15 @@ class landsatData(Data):
                     cfmask[cfmask == 2] = 0
 
                     verbose_out("writing " + fname, 2)
-                    imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 1)
-                    imgout.SetBandName('Land mask', 1)
-                    imgout[0].Write(cfmask)
+                    imgout = gippy.GeoImage(img, fname, 1, 'byte')
+                    imgout.set_bandname('Land mask', 1)
+                    imgout[0].write(cfmask)
 
                 archive_fp = self.archive_temp_path(fname)
                 self.AddFile(sensor, key, archive_fp)
 
-
         elif asset == 'DN' or asset == 'C1':
-
             # This block contains everything that existed in the first generation Landsat driver
-
             # Add the sensor for this date to the basename
             self.basename = self.basename + '_' + self.sensors[asset]
 
@@ -976,33 +972,31 @@ class landsatData(Data):
                         continuable=True):
                     fname = self.temp_product_filename(sensor, key)
                     if val[0] == 'acca':
+                        raise NotImplementedError("ACCA is currently not functional with gippy 1.0")
                         s_azim = self.metadata['geometry']['solarazimuth']
                         s_elev = 90 - self.metadata['geometry']['solarzenith']
                         erosion, dilation, cloudheight = 5, 10, 4000
                         if len(val) >= 4:
                             erosion, dilation, cloudheight = [int(v) for v in val[1:4]]
-                        resset = set(
-                            [(reflimg[band].Resolution().x(),
-                              reflimg[band].Resolution().y())
-                             for band in (self.assets[asset].visbands +
-                                          self.assets[asset].lwbands)]
-                        )
-                        if len(resset) > 1:
-                            raise Exception(
-                                'ACCA requires all bands to have the same '
-                                'spatial resolution.  Found:\n\t' + str(resset)
-                            )
+                        res_set = set((p.x(), p.y()) for p in (
+                            reflimg[b].resolution() for b in (a_obj.visbands + a_obj.lwbands)))
+                        assert res_set, 'no resolutions found in reflimg' # sanity check
+                        if len(res_set) > 1:
+                            raise Exception("ACCA requires all bands to have the same "
+                                            "spatial resolution; found: " + str(list(res_set)))
                         imgout = algorithms.acca(reflimg, fname, s_elev,
                                                  s_azim, erosion, dilation, cloudheight)
                     elif val[0] == 'fmask':
+                        raise NotImplementedError(
+                                "fmask is currently not functional with gippy 1.0")
+                        # currently errors out due to some 'water' band not being present
                         tolerance, dilation = 3, 5
                         if len(val) >= 3:
                             tolerance, dilation = [int(v) for v in val[1:3]]
                         imgout = algorithms.fmask(reflimg, fname, tolerance, dilation)
 
                     elif val[0] == 'cloudmask':
-                        qaimg = self._readqa()
-                        npqa = qaimg.Read() # transmogrify into numpy array
+                        npqa = self._readqa()
                         # https://landsat.usgs.gov/collectionqualityband
                         # cloudmaskmask = (cloud and (cc_med or cc_high)) or csc_med or csc_high
                         # cloud iff bit 4
@@ -1012,87 +1006,84 @@ class landsatData(Data):
                             """Return an array with the ith bit extracted from each cell."""
                             return (np_array >> i) & 0b1
                         np_cloudmask = get_bit(npqa, 4) & get_bit(npqa, 6) | get_bit(npqa, 8)
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 1) # only one layer
+                        imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
                         verbose_out("writing " + fname, 2)
-                        imgout.SetBandName('Cloud Mask', 1)
-                        imgout[0].Write(np_cloudmask)
+                        imgout.set_bandname('Cloud Mask', 1)
+                        imgout[0].write(np_cloudmask)
                     elif val[0] == 'rad':
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, len(visbands))
-                        for i in range(0, imgout.NumBands()):
-                            imgout.SetBandName(visbands[i], i + 1)
-                        imgout.SetNoData(-32768)
-                        imgout.SetGain(0.1)
+                        imgout = gippy.GeoImage.create_from(img, fname, len(visbands), 'int16')
+                        self.set_band_names(imgout, visbands)
+                        imgout.set_nodata(-32768)
+                        imgout.set_gain(0.1)
                         if toa:
                             for col in visbands:
-                                img[col].Process(imgout[col])
+                                img[col].save(imgout[col])
                         else:
                             for col in visbands:
-                                ((img[col] - atm6s.results[col][1]) / atm6s.results[col][0]).Process(imgout[col])
+                                ((img[col] - atm6s.results[col][1]) / atm6s.results[col][0]).save(imgout[col])
                         # Mask out any pixel for which any band is nodata
                         #imgout.ApplyMask(img.DataMask())
                     elif val[0] == 'ref':
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, len(visbands))
-                        for i in range(0, imgout.NumBands()):
-                            imgout.SetBandName(visbands[i], i + 1)
-                        imgout.SetNoData(-32768)
-                        imgout.SetGain(0.0001)
+                        imgout = gippy.GeoImage.create_from(img, fname, len(visbands), 'int16')
+                        self.set_band_names(imgout, visbands)
+                        imgout.set_nodata(-32768)
+                        imgout.set_gain(0.0001)
                         if toa:
                             for c in visbands:
-                                reflimg[c].Process(imgout[c])
+                                reflimg[c].save(imgout[c])
                         else:
                             for c in visbands:
                                 (((img[c] - atm6s.results[c][1]) / atm6s.results[c][0])
-                                        * (1.0 / atm6s.results[c][2])).Process(imgout[c])
+                                        * (1.0 / atm6s.results[c][2])).save(imgout[c])
                         # Mask out any pixel for which any band is nodata
                         #imgout.ApplyMask(img.DataMask())
                     elif val[0] == 'tcap':
+                        raise NotImplmentedError('tcap is incompatible with gippy 1.0 (segfaults)')
                         tmpimg = gippy.GeoImage(reflimg)
-                        tmpimg.PruneBands(['BLUE', 'GREEN', 'RED', 'NIR', 'SWIR1', 'SWIR2'])
+                        tmpimg.select(['BLUE', 'GREEN', 'RED', 'NIR', 'SWIR1', 'SWIR2'])
                         arr = numpy.array(self.Asset._sensors[self.sensor_set[0]]['tcap']).astype('float32')
                         imgout = algorithms.linear_transform(tmpimg, fname, arr)
                         outbands = ['Brightness', 'Greenness', 'Wetness', 'TCT4', 'TCT5', 'TCT6']
-                        for i in range(0, imgout.NumBands()):
-                            imgout.SetBandName(outbands[i], i + 1)
+                        self.set_band_names(imgout, outbands)
                     elif val[0] == 'temp':
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, len(lwbands))
-                        for i in range(0, imgout.NumBands()):
-                            imgout.SetBandName(lwbands[i], i + 1)
-                        imgout.SetNoData(-32768)
-                        imgout.SetGain(0.1)
-                        [reflimg[col].Process(imgout[col]) for col in lwbands]
+                        imgout = gippy.GeoImage.create_from(img, fname, len(lwbands), 'int16')
+                        self.set_band_names(imgout, lwbands)
+                        imgout.set_nodata(-32768)
+                        imgout.set_gain(0.1)
+                        [reflimg[col].save(imgout[col]) for col in lwbands]
                     elif val[0] == 'dn':
                         rawimg = self._readraw()
-                        rawimg.SetGain(1.0)
-                        rawimg.SetOffset(0.0)
-                        imgout = rawimg.Process(fname)
+                        rawimg.set_gain(1.0)
+                        rawimg.set_offset(0.0)
+                        imgout = rawimg.save(fname)
                         rawimg = None
                     elif val[0] == 'volref':
                         bands = deepcopy(visbands)
                         bands.remove("SWIR1")
-                        imgout = gippy.GeoImage(fname, reflimg, gippy.GDT_Int16, len(bands))
-                        [imgout.SetBandName(band, i + 1) for i, band in enumerate(bands)]
-                        imgout.SetNoData(-32768)
-                        imgout.SetGain(0.0001)
+                        imgout = gippy.GeoImage.create_from(reflimg, fname, len(bands), 'int16')
+                        [imgout.set_bandname(band, i + 1) for i, band in enumerate(bands)]
+                        imgout.set_nodata(-32768)
+                        imgout.set_gain(0.0001)
                         r = 0.54    # Water-air reflection
                         p = 0.03    # Internal Fresnel reflectance
                         pp = 0.54   # Water-air Fresnel reflectance
                         n = 1.34    # Refractive index of water
                         Q = 1.0     # Downwelled irradiance / upwelled radiance
                         A = ((1 - p) * (1 - pp)) / (n * n)
-                        srband = reflimg['SWIR1'].Read()
-                        nodatainds = srband == reflimg['SWIR1'].NoDataValue()
+                        srband = reflimg['SWIR1'].read()
+                        nodatainds = srband == reflimg['SWIR1'].nodata()
                         for band in bands:
-                            bimg = reflimg[band].Read()
+                            bimg = reflimg[band].read()
                             diffimg = bimg - srband
                             diffimg = diffimg / (A + r * Q * diffimg)
-                            diffimg[bimg == reflimg[band].NoDataValue()] = imgout[band].NoDataValue()
-                            diffimg[nodatainds] = imgout[band].NoDataValue()
-                            imgout[band].Write(diffimg)
+                            diffimg[bimg == reflimg[band].nodata()] = imgout[band].nodata()
+                            diffimg[nodatainds] = imgout[band].nodata()
+                            imgout[band].write(diffimg)
                     elif val[0] == 'wtemp':
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, len(lwbands))
-                        [imgout.SetBandName(lwbands[i], i + 1) for i in range(0, imgout.NumBands())]
-                        imgout.SetNoData(-32768)
-                        imgout.SetGain(0.1)
+                        imgout = gippy.GeoImage.create_from(img, fname, len(lwbands), 'int16')
+                        self.set_band_names(imgout, lwbands)
+                        imgout.set_nodata(-32768)
+                        imgout.set_gain(0.1)
                         tmpimg = gippy.GeoImage(img)
                         for col in lwbands:
                             band = tmpimg[col]
@@ -1102,37 +1093,42 @@ class landsatData(Data):
                             dt = self.metadata['datetime']
                             atmos = MODTRAN(m['bandnum'], m['wvlen1'], m['wvlen2'], dt, lat, lon, True)
                             e = 0.95
-                            band = (tmpimg[col] - (atmos.output[1] + (1 - e) * atmos.output[2])) / (atmos.output[0] * e)
-                            band = (((band.pow(-1)) * meta[col]['K1'] + 1).log().pow(-1)) * meta[col]['K2'] - 273.15
-                            band.Process(imgout[col])
+                            band = (tmpimg[col] - (atmos.output[1] + (1 - e) * atmos.output[2])
+                                    ) / (atmos.output[0] * e)
+                            band = (((band.pow(-1)) * meta[col]['K1'] + 1).log().pow(-1)
+                                    ) * meta[col]['K2'] - 273.15
+                            band.save(imgout[col])
 
                     elif val[0] == 'bqa':
                         if 'LC8' not in self.sensor_set:
+                            verbose_out('LC8 not in sensor set, skipping bqa product', 1)
                             continue
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Int16, 7)
-                        qaimg = self._readqa()
-                        qadata = qaimg.Read()
+                        # at least one issue, which is a NameError
+                        raise NotImplementedError("bqa product is currently not functioning")
+                        imgout = gippy.GeoImage.create_from(fname, img, 7, 'int16')
+                        qadata = self._readqa()
                         notfilled = ~binmask(qadata, 1)
                         notdropped = ~binmask(qadata, 2)
                         notterrain = ~binmask(qadata, 3)
                         notcirrus = ~binmask(qadata, 14) & binmask(qadata, 13)
                         notcloud = ~binmask(qadata, 16) & binmask(qadata, 15)
                         allgood = notfilled * notdropped * notterrain * notcirrus * notcloud
-                        imgout[0].Write(allgood.astype('int16'))
-                        imgout[1].Write(notfilled.astype('int16'))
-                        imgout[2].Write(notdropped.astype('int16'))
-                        imgout[3].Write(notterrain.astype('int16'))
-                        imgout[4].Write(notsnow.astype('int16'))
-                        imgout[5].Write(notcirrus.astype('int16'))
-                        imgout[6].Write(notcloud.astype('int16'))
+                        imgout[0].write(allgood.astype('int16'))
+                        imgout[1].write(notfilled.astype('int16'))
+                        imgout[2].write(notdropped.astype('int16'))
+                        imgout[3].write(notterrain.astype('int16'))
+                        imgout[4].write(notsnow.astype('int16'))
+                        imgout[5].write(notcirrus.astype('int16'))
+                        imgout[6].write(notcloud.astype('int16'))
 
                     elif val[0] == 'bqashadow':
                         if 'LC8' not in self.sensor_set:
                             continue
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_UInt16, 1)
-                        imgout[0].SetNoData(0)
-                        qaimg = self._readqa()
-                        qadata = qaimg.Read()
+                        raise NotImplementedError("bqashadow is not supported for gippy 1.0;"
+                                                  " gippy.algorithms.AddShadowMask doesn't exist")
+                        imgout = gippy.GeoImage.create_from(img, fname, 1, 'uint16')
+                        imgout[0].set_nodata(0)
+                        qadata = self._readqa()
                         fill = binmask(qadata, 1)
                         dropped = binmask(qadata, 2)
                         terrain = binmask(qadata, 3)
@@ -1140,29 +1136,26 @@ class landsatData(Data):
                         othercloud = binmask(qadata, 16)
                         cloud = (cirrus + othercloud) + 2 * (fill + dropped + terrain)
                         abfn = fname + '-intermediate'
-                        abimg = gippy.GeoImage(abfn, img, gippy.GDT_UInt16, 1)
-                        abimg[0].SetNoData(2)
-                        abimg[0].Write(cloud.astype(numpy.uint16))
-                        abimg.Process()
+                        abimg = gippy.GeoImage.create_from(img, abfn, 1, 'uint16')
+                        abimg[0].set_nodata(2)
+                        abimg[0].write(cloud.astype(numpy.uint16))
+                        abimg.save()
                         abimg = None
                         abimg = gippy.GeoImage(abfn + '.tif')
-
                         s_azim = self.metadata['geometry']['solarazimuth']
                         s_elev = 90 - self.metadata['geometry']['solarzenith']
                         erosion, dilation, cloudheight = 5, 10, 4000
                         if len(val) >= 4:
                             erosion, dilation, cloudheight = [int(v) for v in val[1:4]]
-                        raise NotImplementedError("Not sure what happened to"
-                                                  " gippy.algorithms.AddShadowMask")
                         imgout = AddShadowMask(
                             abimg, imgout, 0, s_elev, s_azim, erosion,
                             dilation, cloudheight, {'notes': 'dev-version'}
                         )
-                        imgout.Process()
+                        imgout.save()
                         abimg = None
                         os.remove(abfn + '.tif')
-                    fname = imgout.Filename()
-                    imgout.SetMeta(md)
+                    fname = imgout.filename()
+                    imgout.add_meta(md)
                     imgout = None
                     archive_fp = self.archive_temp_path(fname)
                     self.AddFile(sensor, key, archive_fp)
@@ -1247,6 +1240,7 @@ class landsatData(Data):
                     )
                 shutil.rmtree(aco_proc_dir)
                 ## end ACOLITE
+        verbose_out('finished landsat processing!', 3, 'stderr')
 
     def filter(self, pclouds=100, sensors=None, **kwargs):
         """Check if Data object passes filter.
@@ -1270,11 +1264,14 @@ class landsatData(Data):
     def meta(self):
         """ Read in Landsat MTL (metadata) file """
 
-        # test if metadata already read in, if so, return
+        # test if metadata already read in, if so, return # TODO that's not what this does tho?
         if 'C1' in self.assets.keys():
             asset = 'C1'
         elif 'DN' in self.assets.keys():
             asset = 'DN'
+        else:
+            raise ValueError("neither C1 nor DN found in asset types for this scene: {}".format(
+                    self.assets.keys()))
 
         datafiles = self.assets[asset].datafiles()
 
@@ -1375,6 +1372,10 @@ class landsatData(Data):
         return meta
 
     def _readqa(self):
+        """Returns a numpy array of the first landsat asset in self.assets.
+
+        It is cast to uint16 before being returned, because gippy insists on
+        float64, which is quite wrong for a grid of quality flags."""
         asset = self.assets.keys()[0]
 
         # make sure metadata is loaded
@@ -1385,10 +1386,10 @@ class landsatData(Data):
             qadatafile = self.assets[asset].extract([self.metadata['qafilename']])
         else:
             # Use tar.gz directly using GDAL's virtual filesystem
-            qadatafile = os.path.join('/vsitar/' + self.assets[asset].filename, self.metadata['qafilename'])
-        qaimg = gippy.GeoImage(qadatafile)
-        return qaimg
-
+            qadatafile = os.path.join('/vsitar/' + self.assets[asset].filename,
+                                      self.metadata['qafilename'])
+        npqa = gippy.GeoImage(qadatafile).read().as_type('uint16')
+        return npqa
 
     def _readraw(self):
         """ Read in Landsat bands using original tar.gz file """
@@ -1408,7 +1409,7 @@ class landsatData(Data):
                     for f in self.metadata['filenames']]
 
         image = gippy.GeoImage(datafiles)
-        image.SetNoData(0)
+        image.set_nodata(0)
 
         # TODO - set appropriate metadata
         #for key,val in meta.iteritems():
@@ -1421,12 +1422,12 @@ class landsatData(Data):
         colors = self.assets[asset]._sensors[sensor]['colors']
 
         for bi in range(0, len(self.metadata['filenames'])):
-            image.SetBandName(colors[bi], bi + 1)
+            image.set_bandname(colors[bi], bi + 1)
             # need to do this or can we index correctly?
             band = image[bi]
             gain = self.metadata['gain'][bi]
-            band.SetGain(gain)
-            band.SetOffset(self.metadata['offset'][bi])
+            band.set_gain(gain)
+            band.set_offset(self.metadata['offset'][bi])
             dynrange = self.metadata['dynrange'][bi]
             # #band.SetDynamicRange(dynrange[0], dynrange[1])
             # dynrange[0] was used internally to for conversion to radiance
@@ -1450,5 +1451,5 @@ class landsatData(Data):
             #     Out[20]: -64.927711800095906
 
 
-        verbose_out('%s: read in %s' % (image.Basename(), datetime.now() - start), 2)
+        verbose_out('%s: read in %s' % (image.basename(), datetime.now() - start), 2)
         return image

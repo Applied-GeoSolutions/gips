@@ -70,16 +70,18 @@ def verbose_out(obj, level=1, stream=sys.stdout):
 
     Print to stdout by default, but select any stream the user wishes.  Finally
     if the obj is a list or tuple, print each contained object consecutively on
-    separate lines.
+    separate lines.  The stream may be specified by passing in the stream object or
+    by the special strings, 'stderr' and 'stdout'.
     """
     #TODO: Add real documentation of rules regarding levels used within
     #      GIPS. Levels 1-4 are used frequently.  Setting `-v5` is
     #      "let me see everything" level.
+    streams = {'stdout': sys.stdout, 'stderr': sys.stderr}
     if verbosity() >= level:
         if not isinstance(obj, (list, tuple)):
             obj = [obj]
         for o in obj:
-            print(o, file=stream)
+            print(o, file=streams.get(stream, stream))
 
 VerboseOut = verbose_out # VerboseOut name is deprecated
 
