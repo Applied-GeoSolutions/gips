@@ -44,18 +44,6 @@ from gips.data.core import Repository, Asset, Data
 from gips import utils
 from gips import atmosphere
 
-"""Steps for adding a product to this driver:
-
-* add the product to the _products dict
-* make a $prod_geoimage() method to generate the GeoImage; follow pattern of others.
-* add a stanza to the conditional below where $prod_geoimage is called.
-* add the product to the dependency dict above.
-* if atmo correction is in use:
-    * save its metadata (see 'ref' for a pattern)
-    * add the product to the conditional for metadata in the file-saving block
-* update system tests
-"""
-
 
 class sentinel2Repository(Repository):
     name = 'Sentinel2'
@@ -591,6 +579,20 @@ class sentinel2Asset(Asset):
 
 
 class sentinel2Data(Data):
+    """Data class for sentinel2 scenes; as per usual for gips.
+
+    Steps for adding a product to this driver:
+        * add the product to the _products dict
+        * make a $prod_geoimage() method to generate the GeoImage;
+            follow pattern of others.
+        * add a stanza to the conditional below where
+            $prod_geoimage is called.
+        * add the product to _product_dependencies
+        * if atmo correction is in use, save its metadata (see 'ref' for
+              a pattern), then add the product to the conditional for
+              metadata in the file-saving block
+        * update system tests
+    """
     name = 'Sentinel2'
     version = '0.1.0'
     Asset = sentinel2Asset
