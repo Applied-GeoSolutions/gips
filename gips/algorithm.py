@@ -25,7 +25,6 @@ import argparse
 #from datetime import datetime
 import traceback
 
-import gippy
 import gips
 from gips.utils import VerboseOut, Colors
 from gips import utils

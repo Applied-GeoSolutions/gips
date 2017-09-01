@@ -23,7 +23,6 @@
 
 import os
 
-import gippy
 from gips.parsers import GIPSParser
 from gips.inventory import ProjectInventory
 from gips.utils import Colors, VerboseOut, basename
