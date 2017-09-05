@@ -812,13 +812,13 @@ class sentinel2Data(Data):
                     raise IOError("Expected gdalwarp exit status 0, got {}".format(
                             p.returncode))
             upsampled_img = gippy.GeoImage(upsampled_filenames)
-            upsampled_img.SetMeta(self.meta_dict())
-            upsampled_img.SetNoData(0)
+            upsampled_img.add_meta(self.meta_dict())
+            upsampled_img.set_nodata(0)
             # eg:   3        '08'
             for band_num, band_string in enumerate(data_spec['indices-bands'], 1):
                 band_index = data_spec['band-strings'].index(band_string) # starts at 0
                 color_name = data_spec['colors'][band_index]
-                upsampled_img.SetBandName(color_name, band_num)
+                upsampled_img.set_bandname(color_name, band_num)
         self._product_images['ref-toa'] = upsampled_img
         self._time_report('Completed upsampling of Sentinel-2 asset bands')
 
@@ -839,12 +839,12 @@ class sentinel2Data(Data):
         rad_image = gippy.GeoImage(upsampled_img)
 
         for i in range(len(rad_image)):
-            color = rad_image[i].Description()
+            color = rad_image[i].description()
             rf = radiance_factors[colors.index(color)]
             self._time_report(
                 'TOA radiance reversion factor for {} (band {}): {}'.format(color, i + 1, rf))
             rad_image[i] = rad_image[i] * rf
-        rad_image.SetNoData(0)
+        rad_image.set_nodata(0)
         self._product_images['rad-toa'] = rad_image
 
 
@@ -1027,14 +1027,14 @@ class sentinel2Data(Data):
             err_msg = 'Error creating product {} for {}'.format(
                     prod_type, os.path.basename(self.assets[asset_type].filename))
             with utils.error_handler(err_msg, continuable=True):
-                self._time_report('Starting {} processing'.format(prod_type))
+                self._time_report('Starting {} processing'.format(prod_type)) # TODO misleading
                 temp_fp = self.temp_product_filename(sensor, prod_type)
                 # have to reproduce the whole object because gippy refuses to write metadata when
                 # you do image.Process(filename).
                 source_image = self._product_images[prod_type]
-                output_image = gippy.GeoImage(temp_fp, source_image)
-                output_image.SetNoData(0)
-                output_image.SetMeta(self.meta_dict()) # add standard metadata
+                output_image = gippy.GeoImage.create_from(source_image, temp_fp)
+                output_image.set_nodata(0)
+                output_image.add_meta(self.meta_dict()) # add standard metadata
                 if prod_type in ('ref', 'rad'): # atmo-correction metadata
                     output_image.SetMeta('AOD Source', source_image._aod_source)
                     output_image.SetMeta('AOD Value',  source_image._aod_value)
@@ -1045,11 +1045,11 @@ class sentinel2Data(Data):
                     output_image.SetMeta('FMASK_3', 'cloud shadow')
                     output_image.SetMeta('FMASK_4', 'snow')
                     output_image.SetMeta('FMASK_5', 'water')
-                for b_num, b_name in enumerate(source_image.BandNames(), 1):
-                    output_image.SetBandName(b_name, b_num)
+                for b_num, b_name in enumerate(source_image.bandnames(), 1):
+                    output_image.set_bandname(b_name, b_num)
                 # process bandwise because gippy had an error doing it all at once
                 for i in range(len(source_image)):
-                    source_image[i].Process(output_image[i])
+                    source_image[i].save(output_image[i])
                 archive_fp = self.archive_temp_path(temp_fp)
                 self.AddFile(sensor, prod_type, archive_fp)
 
