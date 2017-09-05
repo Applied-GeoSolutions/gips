@@ -1033,15 +1033,15 @@ class sentinel2Data(Data):
                 output_image.set_nodata(0)
                 output_image.add_meta(self.meta_dict()) # add standard metadata
                 if prod_type in ('ref', 'rad'): # atmo-correction metadata
-                    output_image.SetMeta('AOD Source', source_image._aod_source)
-                    output_image.SetMeta('AOD Value',  source_image._aod_value)
+                    output_image.add_meta('AOD Source', source_image._aod_source)
+                    output_image.add_meta('AOD Value',  source_image._aod_value)
                 if prod_type == 'cfmask':
-                    output_image.SetMeta('FMASK_0', 'nodata')
-                    output_image.SetMeta('FMASK_1', 'valid')
-                    output_image.SetMeta('FMASK_2', 'cloud')
-                    output_image.SetMeta('FMASK_3', 'cloud shadow')
-                    output_image.SetMeta('FMASK_4', 'snow')
-                    output_image.SetMeta('FMASK_5', 'water')
+                    output_image.add_meta('FMASK_0', 'nodata')
+                    output_image.add_meta('FMASK_1', 'valid')
+                    output_image.add_meta('FMASK_2', 'cloud')
+                    output_image.add_meta('FMASK_3', 'cloud shadow')
+                    output_image.add_meta('FMASK_4', 'snow')
+                    output_image.add_meta('FMASK_5', 'water')
                 for b_num, b_name in enumerate(source_image.bandnames(), 1):
                     output_image.set_bandname(b_name, b_num)
                 # process bandwise because gippy had an error doing it all at once
