@@ -886,19 +886,16 @@ class sentinel2Data(Data):
         else:
             image = self.load_image('ref-toa')
 
+        # this section cribbed from landsat _process_indices
         # reminder - indices' values are the keys, split by hyphen, eg {ndvi-toa': ['ndvi', 'toa']}
-        gippy_input = {} # map prod types to temp output filenames for feeding to gippy
-        tempfps_to_ptypes = {} # map temp output filenames to prod types, needed for AddFile
         for prod_type, pt_split in indices.items():
+            self._time_report('Starting on index product ' + prod_type)
             temp_fp = self.temp_product_filename(sensor, prod_type)
-            gippy_input[pt_split[0]] = temp_fp
-            tempfps_to_ptypes[temp_fp] = prod_type
-
-        prodout = gippy.algorithms.Indices(image, gippy_input, metadata)
-
-        for temp_fp in prodout.values():
+            # indices() assumes many indices layers per file; we just want one
+            index_image = gippy.algorithms.indices(image, [pt_split[0]], temp_fp)
+            index_image.add_meta(metadata)
             archived_fp = self.archive_temp_path(temp_fp)
-            self.AddFile(sensor, tempfps_to_ptypes[temp_fp], archived_fp)
+            self.AddFile(sensor, prod_type, archived_fp)
 
         self._time_report(' -> %s: processed %s' % (self.basename, indices))
 
@@ -976,7 +973,7 @@ class sentinel2Data(Data):
         )
 
         DEVNULL.close()
-        fmask_image = gippy.GeoImage("%s/cloudmask.tif" % self._temp_proc_dir)
+        fmask_image = gippy.GeoImage("{}/cloudmask.tif".format(self._temp_proc_dir))
         self._product_images['cfmask'] = fmask_image
 
 
