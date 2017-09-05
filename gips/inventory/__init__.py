@@ -160,6 +160,7 @@ class ProjectInventory(Inventory):
 
     def get_data(self, dates=None, products=None, chunk=None):
         """ Read all files as time series, stacking all products """
+        # TODO gippy 1.0:  needs to be updated, but this method's only caller is never called?
         # TODO - change to absolute dates
 
         if dates is None:

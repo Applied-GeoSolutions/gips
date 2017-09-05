@@ -71,6 +71,7 @@ def main():
                         continue
                     meta = ''
                     update = True if args.original else False
+                    # TODO gippy 1.0:  here down needs fixing
                     img = inv[date].open(p, update=update)
                     if args.filemask is not None:
                         img.AddMask(mask_file[0])
