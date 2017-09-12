@@ -107,7 +107,7 @@ class cdlData(Data):
 
 
             image = GeoImage(fname, True)
-            image[0].SetNoData(0)
+            image[0].set_nodata(0)
             image = None
 
             image = gdal.Open(fname, gdal.GA_Update)

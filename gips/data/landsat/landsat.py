@@ -968,13 +968,6 @@ class landsatData(Data):
                             """Return an array with the ith bit extracted from each cell."""
                             return (np_array >> i) & 0b1
 
-                        # gippy 1.0 version
-                        #np_cloudmask = get_bit(npqa, 4) & get_bit(npqa, 6) | get_bit(npqa, 8)
-                        #imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
-                        #verbose_out("writing " + fname, 2)
-                        #imgout.set_bandname('Cloud Mask', 1)
-                        #imgout[0].write(np_cloudmask)
-
                         # here down is dev version; needs update for gippy 1.0
                         np_cloudmask = numpy.logical_not(
                             get_bit(npqa, 4) &
@@ -990,16 +983,13 @@ class landsatData(Data):
                             np_cloudmask,
                             structure=numpy.ones((10, 10), dtype=numpy.uint8),
                         )
-                        # 
 
-                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 1)
-                        verbose_out("writing " + fname, 2)
-                        imgout.SetBandName(
-                            self._products[val[0]]['bands'][0], 1
-                        )
-                        imgout.SetMeta('GIPS_LANDSAT_VERSION', self.version)
-                        imgout[0].SetNoData(0.)
-                        imgout[0].Write(
+                        imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
+                        imgout.set_bandname(
+                                self._products[val[0]]['bands'][0]['name'], 1)
+                        imgout.add_meta('GIPS_LANDSAT_VERSION', self.version)
+                        imgout[0].set_nodata(0.)
+                        imgout[0].write(
                             np_cloudmask_erroded.astype(numpy.uint8)
                         )
                     elif val[0] == 'rad':
@@ -1378,7 +1368,7 @@ class landsatData(Data):
             # Use tar.gz directly using GDAL's virtual filesystem
             qadatafile = os.path.join('/vsitar/' + self.assets[asset].filename,
                                       self.metadata['qafilename'])
-        npqa = gippy.GeoImage(qadatafile).read().as_type('uint16')
+        npqa = gippy.GeoImage(qadatafile).read().astype('uint16')
         return npqa
 
     def _readraw(self):

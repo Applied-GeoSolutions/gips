@@ -814,10 +814,7 @@ class sentinel2Data(Data):
                     for f in src_filenames]
             #  TODO:  this should be stuffed into the 'env' of Popen, but is a
             #         necessary hack for now.
-            os.putenv(
-                'GDAL_NUM_THREADS',
-                str(int(gippy.Options.NumCores()))
-            )
+            os.putenv('GDAL_NUM_THREADS', str(int(gippy.Options.cores())))
             for in_fn, out_fn in zip(src_filenames, upsampled_filenames):
                 cmd_str = 'gdal_translate -tr 20 20 -oo NUM_THREADS=1 {} {}'.format(in_fn, out_fn)
                 cmd_args = shlex.split(cmd_str)

@@ -410,9 +410,9 @@ def process_acolite(asset, aco_proc_dir, products):
     ACOLITE_NDV = 1.875 * 2 ** 122
     # mapping from dtype to gdal type and nodata value
     IMG_PARAMS = {
-        'float32': (gippy.GDT_Float32, -32768.),
-        'int16': (gippy.GDT_Int16, -32768),
-        'uint8': (gippy.GDT_Byte, 1),
+        'float32': ('float32', -32768.),
+        'int16': ('int16', -32768),
+        'uint8': ('byte', 1),
     }
     imeta = products.pop('meta')
 
@@ -502,7 +502,7 @@ def process_acolite(asset, aco_proc_dir, products):
         dtype, missing = IMG_PARAMS[npdtype]
         gain = products[key].get('gain', 1.0)
         offset = products[key].get('offset', 0.0)
-        imgout = gippy.GeoImage(ofname, tmp, dtype, len(bands))
+        imgout = gippy.GeoImage.create_from(tmp, ofname, len(bands), dtype)
         # # TODO: add units to products dictionary and use here.
         # imgout.SetUnits(products[key]['units'])
         pmeta = dict()
@@ -512,9 +512,9 @@ def process_acolite(asset, aco_proc_dir, products):
             for mdi in ['acolite-key', 'description']
             }
         pmeta['source_asset'] = os.path.basename(asset.filename)
-        imgout.SetMeta(pmeta)
+        imgout.add_meta(pmeta)
         for i, b in enumerate(bands):
-            imgout.SetBandName(str(b), i + 1)
+            imgout.set_bandname(str(b), i + 1)
 
         for i, b in enumerate(bands):
             var = dsroot.variables[b][:]
@@ -530,14 +530,14 @@ def process_acolite(asset, aco_proc_dir, products):
             arr[mask] = ((arr[mask] - offset) / gain)
             verbose_out('acolite processing:  writing band {} of {}'.format(
                         i, ofname), 2)
-            imgout[i].Write(arr.astype(npdtype))
+            imgout[i].write(arr.astype(npdtype))
 
-        prodout[key] = imgout.Filename()
+        prodout[key] = imgout.filename()
         imgout = None
         imgout = gippy.GeoImage(ofname, True)
-        imgout.SetGain(gain)
-        imgout.SetOffset(offset)
-        imgout.SetNoData(missing)
+        imgout.set_gain(gain)
+        imgout.set_offset(offset)
+        imgout.set_nodata(missing)
     verbose_out('acolite processing:'
                 '  finishing; {} products completed'.format(len(products)), 2)
     return prodout

@@ -286,7 +286,7 @@ class sarAsset(Asset):
         self._meta_dict = meta
 
         dateimg = self._jaxa_opener(datefile)
-        dateimg.SetNoData(0)
+        dateimg.set_nodata(0)
         datevals = numpy.unique(dateimg.Read())
         dateimg = None
         RemoveFiles((datefile,), ['.hdr', '.aux.xml'])
@@ -400,32 +400,32 @@ class sarData(Data):
                     fps, path=self._temp_proc_dir)
 
                 img = jo(bands)
-                img.SetNoData(0)
+                img.set_nodata(0)
                 mask = jo(datafiles['mask'])
-                img.AddMask(mask[0] == 255)
+                img.add_mask(mask[0] == 255)
                 # apply date mask
                 dateimg = jo(datafiles['date'])
                 dateday = (
                     self.date -
                     self.assets[asset]._sensors[sensor]['startdate']).days
-                img.AddMask(dateimg[0] == dateday)
-                imgout = gippy.GeoImage(fname, img, gippy.GDT_Float32)
-                imgout.SetNoData(-32768)
-                for b in range(0, imgout.NumBands()):
-                    imgout.SetBandName(img[b].Description(), b + 1)
+                img.add_mask(dateimg[0] == dateday)
+                imgout = gippy.GeoImage.create_from(fname, img, dtype='float32')
+                imgout.set_nodata(-32768)
+                for b in range(len(imgout)):
+                    imgout.set_bandname(img[b].description(), b + 1)
                     (
                         img[b].pow(2).log10() * 10 +
                         self.assets[asset].get_meta_dict()['CF']
-                    ).Process(imgout[b])
-                fname = imgout.Filename()
+                    ).save(imgout[b])
+                fname = imgout.filename()
             if val[0] == 'linci':
                 # Note the linci product DOES NOT mask by date
                 img = gippy.GeoImage(datafiles['linci'])
-                img.Process(fname)
+                img.save(fname)
             if val[0] == 'date':
                 # Note the date product DOES NOT mask by date
                 img = gippy.GeoImage(datafiles['date'])
-                img.Process(fname)
+                img.save(fname)
             archive_fp = self.archive_temp_path(fname)
             self.AddFile(sensor, key, fname)
         # Remove unused files
