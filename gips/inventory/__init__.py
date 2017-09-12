@@ -39,7 +39,7 @@ from . import dbinv, orm
 
 class Inventory(object):
     """ Base class for inventories """
-    _colors = [Colors.PURPLE, Colors.RED, Colors.GREEN, Colors.BLUE]
+    _colors = [Colors.PURPLE, Colors.RED, Colors.GREEN, Colors.BLUE, Colors.YELLOW]
 
     def __init__(self):
         pass

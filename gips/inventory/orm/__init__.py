@@ -34,7 +34,7 @@ def setup():
     if setup_complete:
         return
     if use_orm():
-        busted_drivers = ('sar', 'sarannual')
+        busted_drivers = ('sarannual',)
 
         if driver_for_dbinv_feature_toggle in busted_drivers:
             msg = ("Inventory database does not support '{}'.  "

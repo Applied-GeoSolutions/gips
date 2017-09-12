@@ -24,7 +24,7 @@
 
 import os
 import re
-from datetime import datetime
+from datetime import datetime, date
 import shutil
 import glob
 import traceback
@@ -41,6 +41,7 @@ from homura import download
 
 from gips.data.core import Repository, Asset, Data
 from gips.atmosphere import SIXS, MODTRAN
+import gips.atmosphere
 from gips.utils import RemoveFiles, basename, settings, verbose_out
 from gips import utils
 
@@ -281,14 +282,8 @@ class landsatAsset(Asset):
     def query_service(cls, asset, tile, date):
         available = []
 
-        # 'SR' not fetchable at the moment
-        if asset == 'SR':
-            verbose_out('SR assets are never fetchable', 4)
-            return available
-
-        # only fetching 'C1' assets from now on
-        if asset == 'DN':
-            verbose_out('DN assets are no longer fetchable', 4)
+        if asset in ['DN', 'SR']:
+            verbose_out('Landsat "{}" assets are no longer fetchable'.format(asset), 4)
             return available
 
         path = tile[:3]
@@ -326,17 +321,32 @@ class landsatAsset(Asset):
         if len(response) > 0:
             verbose_out('Fetching %s %s %s' % (asset, tile, fdate), 1)
             if len(response) != 1:
-                raise Exception('Single date, single location, returned more than one result')
+                raise Exception('Single date, single location, '
+                                'returned more than one result')
             result = response[0]
+            utils.verbose_out(str(response), 4)
             sceneID = result['sceneID']
-            stage_dir = os.path.join(cls.Repository.path(), 'stage')
+            stage_dir = cls.Repository.path('stage')
             sceneIDs = [str(sceneID)]
 
             username = settings().REPOS['landsat']['username']
             password = settings().REPOS['landsat']['password']
             api_key = api.login(username, password)['data']
-            url = api.download(result['dataset'], 'EE', sceneIDs, 'STANDARD', api_key)['data'][0]
-            download(url, stage_dir)
+            url = api.download(
+                result['dataset'], 'EE', sceneIDs, 'STANDARD', api_key
+            )['data'][0]
+            with utils.make_temp_dir(prefix='dwnld', dir=stage_dir) as dldir:
+                download(url, dldir)
+                granules = os.listdir(dldir)
+                if len(granules) == 0:
+                    raise Exception(
+                        'Download appears to have not produced a file: {}'
+                        .format(str(granules))
+                    )
+                os.rename(
+                    os.path.join(dldir, granules[0]),
+                    os.path.join(stage_dir, granules[0]),
+                )
 
     def updated(self, newasset):
         '''
@@ -348,12 +358,17 @@ class landsatAsset(Asset):
                 self.date == newasset.date and
                 self.version < newasset.version)
 
+def unitless_bands(*bands):
+    return [{'name': b, 'units': Data._unitless} for b in bands]
 
 class landsatData(Data):
     name = 'Landsat'
-    version = '0.9.0'
+    version = '1.0.0'
 
     Asset = landsatAsset
+
+    _lt5_startdate = date(1984, 3, 1)
+    _lc8_startdate = date(2013, 5, 30)
 
     # Group products belong to ('Standard' if not specified)
     _productgroups = {
@@ -375,19 +390,27 @@ class landsatData(Data):
             'assets': ['DN', 'C1'],
             'description': 'Surface-leaving radiance',
             'arguments': [__toastring],
-            'bands': __visible_bands_union,
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            # units given by https://landsat.usgs.gov/landsat-8-l8-data-users-handbook-section-5
+            'bands': [{'name': n, 'units': 'W/m^2/sr/um'} for n in __visible_bands_union],
         },
         'ref': {
             'assets': ['DN', 'C1'],
             'description': 'Surface reflectance',
             'arguments': [__toastring],
-            'bands': __visible_bands_union,
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands(*__visible_bands_union)
         },
         'temp': {
             'assets': ['DN', 'C1'],
             'description': 'Brightness (apparent) temperature',
             'toa': True,
-            'bands': ['LWIR', 'LWIR2'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            # units given by https://landsat.usgs.gov/landsat-8-l8-data-users-handbook-section-5
+            'bands': [{'name': n, 'units': 'degree Kelvin'} for n in ['LWIR', 'LWIR2']],
         },
         'acca': {
             'assets': ['DN', 'C1'],
@@ -399,45 +422,63 @@ class landsatData(Data):
             ],
             'nargs': '*',
             'toa': True,
-            'bands': ['finalmask', 'cloudmask', 'ambclouds', 'pass1'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            # percentage, so unitless, per landsat docs:
+            # https://landsat.usgs.gov/how-percentage-cloud-cover-calculated
+            'bands': unitless_bands('finalmask', 'cloudmask', 'ambclouds', 'pass1'),
         },
         'fmask': {
             'assets': ['DN', 'C1'],
             'description': 'Fmask cloud cover',
             'nargs': '*',
             'toa': True,
-            'bands': ['finalmask', 'cloudmask', 'PCP', 'clearskywater', 'clearskyland'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('finalmask', 'cloudmask',
+                                    'PCP', 'clearskywater', 'clearskyland'),
         },
         'cloudmask': {
             'assets': ['C1'],
-            'description': 'Cloud mask product based on cloud bits of the quality band',
+            'description': 'Cloud (and shadow) mask product based on cloud bits of the quality band',
             'toa': True,
-            'bands': ['cloudmask'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('cloudmask'),
         },
         'tcap': {
             'assets': ['DN', 'C1'],
             'description': 'Tassled cap transformation',
             'toa': True,
-            'bands': ['Brightness', 'Greenness', 'Wetness', 'TCT4', 'TCT5', 'TCT6'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('Brightness', 'Greenness', 'Wetness', 'TCT4', 'TCT5', 'TCT6'),
         },
         'dn': {
             'assets': ['DN', 'C1'],
             'description': 'Raw digital numbers',
             'toa': True,
-            'bands': __visible_bands_union,
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': [{'name': n, 'units': 'W/m^2/sr/um'} for n in __visible_bands_union],
         },
         'volref': {
             'assets': ['DN', 'C1'],
             'description': 'Volumetric water reflectance - valid for water only',
             'arguments': [__toastring],
-            'bands': __visible_bands_union,
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            # reflectance is unitless therefore volref should be unitless
+            'bands': unitless_bands(*__visible_bands_union),
         },
         'wtemp': {
             'assets': ['DN', 'C1'],
             'description': 'Water temperature (atmospherically correct) - valid for water only',
             # It's not really TOA, but the product code will take care of atm correction itself
             'toa': True,
-            'bands': ['LWIR', 'LWIR2'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': [{'name': n, 'units': 'degree Kelvin'} for n in ['LWIR', 'LWIR2']],
         },
         'bqa': {
             'assets': ['DN', 'C1'],
@@ -448,7 +489,10 @@ class landsatData(Data):
             # '"0001" has 4 bits, written right to left as bits 0 ("1"), 1 ("0"), 2 ("0"), and 3 ("0"). '
             # 'Each of the bits 0-3 represents a yes/no indication of a physical value.'),
             'toa': True,
-            'bands': ['qa bits'], # TODO aren't there 7 bands?
+            'startdate': _lc8_startdate,
+            'latency': 1,
+            'bands': unitless_bands('allgood', 'notfilled', 'notdropped', 'notterrain',
+                                    'notsnow', 'notcirrus', 'notcloud'),
         },
         'bqashadow': {
             'assets': ['DN', 'C1'],
@@ -460,102 +504,137 @@ class landsatData(Data):
             ],
             'nargs': '*',
             'toa': True,
-            'bands': ['+shadow_smear'],
+            'startdate': _lc8_startdate,
+            'latency': 1,
+            'bands': unitless_bands('bqashadow'),
         },
         #'Indices': {
         'bi': {
             'assets': ['DN', 'C1'],
             'description': 'Brightness Index',
             'arguments': [__toastring],
-            'bands': ['bi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('bi'),
         },
         'evi': {
             'assets': ['DN', 'C1'],
             'description': 'Enhanced Vegetation Index',
             'arguments': [__toastring],
-            'bands': ['evi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('evi'),
         },
         'lswi': {
             'assets': ['DN', 'C1'],
             'description': 'Land Surface Water Index',
             'arguments': [__toastring],
-            'bands': ['lswi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('lswi'),
         },
         'msavi2': {
             'assets': ['DN', 'C1'],
             'description': 'Modified Soil-Adjusted Vegetation Index (revised)',
             'arguments': [__toastring],
-            'bands': ['msavi2'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('msavi2'),
         },
         'ndsi': {
             'assets': ['DN', 'C1'],
             'description': 'Normalized Difference Snow Index',
             'arguments': [__toastring],
-            'bands': ['ndsi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('ndsi'),
         },
         'ndvi': {
             'assets': ['DN', 'C1'],
             'description': 'Normalized Difference Vegetation Index',
             'arguments': [__toastring],
-            'bands': ['ndvi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('ndvi'),
         },
         'ndwi': {
             'assets': ['DN', 'C1'],
             'description': 'Normalized Difference Water Index',
             'arguments': [__toastring],
-            'bands': ['ndwi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('ndwi'),
         },
         'satvi': {
             'assets': ['DN', 'C1'],
             'description': 'Soil-Adjusted Total Vegetation Index',
             'arguments': [__toastring],
-            'bands': ['satvi'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('satvi'),
         },
         'vari': {
             'assets': ['DN', 'C1'],
             'description': 'Visible Atmospherically Resistant Index',
             'arguments': [__toastring],
-            'bands': ['vari'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('vari'),
         },
         #'Tillage Indices': {
         'ndti': {
             'assets': ['DN', 'C1'],
             'description': 'Normalized Difference Tillage Index',
             'arguments': [__toastring],
-            'bands': ['ndti'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('ndti'),
         },
         'crc': {
             'assets': ['DN', 'C1'],
             'description': 'Crop Residue Cover',
             'arguments': [__toastring],
-            'bands': ['crc'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('crc'),
         },
         'sti': {
             'assets': ['DN', 'C1'],
             'description': 'Standard Tillage Index',
             'arguments': [__toastring],
-            'bands': ['sti'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('sti'),
         },
         'isti': {
             'assets': ['DN', 'C1'],
             'description': 'Inverse Standard Tillage Index',
             'arguments': [__toastring],
-            'bands': ['isti'],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('isti'),
         },
         # NEW!!!
         'ndvi8sr': {
             'assets': ['SR'],
             'description': 'Normalized Difference Vegetation from LC8SR',
-            'bands': ['NDVI'],
+            'startdate': _lc8_startdate,
+            'latency': 1,
+            'bands': unitless_bands('ndvi8sr'),
         },
         'landmask': {
             'assets': ['SR'],
             'description': 'Land mask from LC8SR',
-            'bands': ['Land mask'],
+            'startdate': _lc8_startdate,
+            'latency': 1,
+            'bands': unitless_bands('landmask'),
         },
         # ACOLITE products
+        # single-band unitless mostly index or ratio products, per:
+        # https://odnature.naturalsciences.be/downloads/remsem/acolite/
+        #       ACOLITE_processing_options_20170718.0.pdf
         'rhow': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': 'Water-Leaving Radiance-Reflectance',
             'acolite-product': 'rhow_vnir',
             'acolite-key': 'RHOW',
@@ -563,7 +642,9 @@ class landsatData(Data):
             'offset': 0.,
             'dtype': 'int16',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('rhow'),
         },
         # Not sure what the issue is with this product, but it doesn't seem to
         # work as expected (multiband vis+nir product)
@@ -576,7 +657,7 @@ class landsatData(Data):
         #     'toa': True,
         # },
         'oc2chl': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': 'Blue-Green Ratio Chlorophyll Algorithm using bands 483 & 561',
             'acolite-product': 'CHL_OC2',
             'acolite-key': 'CHL_OC2',
@@ -584,10 +665,12 @@ class landsatData(Data):
             'offset': 250.,
             'dtype': 'int16',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('oc2chl'),
         },
         'oc3chl': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': 'Blue-Green Ratio Chlorophyll Algorithm using bands 443, 483, & 561',
             'acolite-product': 'CHL_OC3',
             'acolite-key': 'CHL_OC3',
@@ -595,28 +678,34 @@ class landsatData(Data):
             'offset': 250.,
             'dtype': 'int16',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('oc3chl'),
         },
         'fai': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': 'Floating Algae Index',
             'acolite-product': 'FAI',
             'acolite-key': 'FAI',
             'dtype': 'float32',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('fai'),
         },
         'acoflags': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': '0 = water 1 = no data 2 = land',
             'acolite-product': 'FLAGS',
             'acolite-key': 'FLAGS',
             'dtype': 'uint8',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('acoflags'),
         },
         'spm655': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': 'Suspended Sediment Concentration 655nm',
             'acolite-product': 'SPM_NECHAD_655',
             'acolite-key': 'SPM_NECHAD_655',
@@ -624,10 +713,12 @@ class landsatData(Data):
             'gain': 0.005,
             'dtype': 'int16',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': [{'name': 'spm655', 'units': 'g/m^3'}],
         },
         'turbidity': {
-            'assets': ['DN'],
+            'assets': ['DN', 'C1'],
             'description': 'Blended Turbidity',
             'acolite-product': 'T_DOGLIOTTI',
             'acolite-key': 'T_DOGLIOTTI',
@@ -635,7 +726,9 @@ class landsatData(Data):
             'gain': 0.005,
             'dtype': 'int16',
             'toa': True,
-            'bands': [],
+            'startdate': _lt5_startdate,
+            'latency': 1,
+            'bands': unitless_bands('turbidity'),
         },
     }
 
@@ -649,146 +742,6 @@ class landsatData(Data):
             product_info['latency'] = landsatAsset._assets['C1']['latency']
         else:
             product_info['latency'] = float("inf")
-
-    def _process_acolite(self, asset, aco_proc_dir, products):
-        '''
-        TODO: Move this to `gips.atmosphere`.
-        TODO: Ensure this is genericized to work for S2 or Landsat.
-        '''
-        import netCDF4
-        ACOLITEPATHS = {
-            'ACO_DIR': settings().REPOS['landsat']['ACOLITE_DIR'],
-            # N.B.: only seems to work when run from the ACO_DIR
-            'IDLPATH': 'idl',
-            'ACOLITE_BINARY': 'acolite.sav',
-            # TODO: template may be the only piece that needs
-            #       to be moved for driver-independence.
-            'SETTINGS_TEMPLATE': os.path.join(
-                os.path.dirname(__file__),
-                'acolite.cfg'
-            )
-        }
-        ACOLITE_NDV = 1.875 * 2 ** 122
-        # mapping from dtype to gdal type and nodata value
-        IMG_PARAMS = {
-            'float32': ('float32', -32768.),
-            'int16': ('int16', -32768),
-            'uint8': ('byte', 1),
-        }
-        imeta = products.pop('meta') # see below for possible use of imeta
-
-        # TODO: add 'outdir' to `gips.data.core.Asset.extract` method
-        # EXTRACT ASSET
-        tar = tarfile.open(asset.filename)
-        tar.extractall(aco_proc_dir)
-
-        # STASH PROJECTION AND GEOTRANSFORM (in a GeoImage)
-        exts = re.compile(r'.*\.((jp2)|(tif)|(TIF))$')
-        tif = filter(
-            lambda de: exts.match(de),
-            os.listdir(aco_proc_dir)
-        )[0]
-        tmp = gippy.GeoImage(os.path.join(aco_proc_dir, tif))
-
-        # PROCESS SETTINGS TEMPLATE FOR SPECIFIED PRODUCTS
-        settings_path = os.path.join(aco_proc_dir, 'settings.cfg')
-        template_path = ACOLITEPATHS.pop('SETTINGS_TEMPLATE')
-        acolite_products = ','.join(
-            [
-                products[k]['acolite-product']
-                for k in products
-                if k != 'acoflags'  # acoflags is always internally generated
-                                    # by ACOLITE, 
-            ]
-        )
-        if len(acolite_products) == 0:
-            raise Exception(
-                "ACOLITE: Must specify at least 1 product.\n"
-                "'acoflags' cannot be generated on its own.",
-            )
-        with open(template_path, 'r') as aco_template:
-            with open(settings_path, 'w') as aco_settings:
-                for line in aco_template:
-                    aco_settings.write(
-                        re.sub(
-                            r'GIPS_LANDSAT_PRODUCTS',
-                            acolite_products,
-                            line
-                        )
-                    )
-        ACOLITEPATHS['ACOLITE_SETTINGS'] = settings_path
-
-        # PROCESS VIA ACOLITE IDL CALL
-        cmd = (
-            ('cd {ACO_DIR} ; '
-             '{IDLPATH} -IDL_CPU_TPOOL_NTHREADS 1 '
-             '-rt={ACOLITE_BINARY} '
-             '-args settings={ACOLITE_SETTINGS} '
-             'run=1 '
-             'output={OUTPUT} image={IMAGES}')
-            .format(
-                OUTPUT=aco_proc_dir,
-                IMAGES=aco_proc_dir,
-                **ACOLITEPATHS
-            )
-        )
-        utils.verbose_out('Running: {}'.format(cmd), 2)
-        status, output = commands.getstatusoutput(cmd)
-        if status != 0:
-            raise Exception(cmd, output)
-        aco_nc_file = glob.glob(os.path.join(aco_proc_dir, '*_L2.nc'))[0]
-        dsroot = netCDF4.Dataset(aco_nc_file)
-
-        # EXTRACT IMAGES FROM NETCDF AND
-        # COMBINE MULTI-IMAGE PRODUCTS INTO
-        # A MULTI-BAND TIF, ADD METADATA, and MOVE INTO TILES
-        prodout = dict()
-
-        for key in products:
-            ofname = products[key]['fname']
-            aco_key = products[key]['acolite-key']
-            bands = list(filter(
-                lambda x: str(x) == aco_key or x.startswith(aco_key),
-                dsroot.variables.keys()
-            ))
-            npdtype = products[key]['dtype']
-            dtype, missing = IMG_PARAMS[npdtype]
-            gain = products[key].get('gain', 1.0)
-            offset = products[key].get('offset', 0.0)
-            imgout = gippy.GeoImage.create_from(tmp, ofname, len(bands), dtype)
-            # # TODO: add units to products dictionary and use here.
-            # imgout.SetUnits(products[key]['units'])
-            pmeta = {
-                mdi: products[key][mdi]
-                for mdi in ['acolite-key', 'description']
-            }
-            # pmeta.update(imeta) # TODO this was dead code, uncomment?
-            pmeta['source_asset'] = os.path.basename(asset.filename)
-            imgout.add_meta(pmeta)
-            for i, b in enumerate(bands):
-                imgout.set_bandname(str(b), i + 1)
-
-            for i, b in enumerate(bands):
-                var = dsroot.variables[b][:]
-                arr = numpy.array(var)
-                if hasattr(dsroot.variables[b], '_FillValue'):
-                    fill = dsroot.variables[b]._FillValue
-                else:
-                    fill = ACOLITE_NDV
-                mask = arr != fill
-                arr[numpy.invert(mask)] = missing
-                # if key == 'rhow':
-                #     set_trace()
-                arr[mask] = ((arr[mask] - offset) / gain)
-                imgout[i].write(arr.astype(npdtype))
-
-            prodout[key] = imgout.filename()
-            imgout = None
-            imgout = gippy.GeoImage(ofname, True)
-            imgout.set_gain(gain)
-            imgout.set_offset(offset)
-            imgout.set_nodata(missing)
-        return prodout
 
     def _process_indices(self, image, metadata, sensor, indices):
         """Process the given indices and add their files to the inventory.
@@ -824,16 +777,24 @@ class landsatData(Data):
 
         start = datetime.now()
 
-        assets = set()
+        assets = set() # assets needed for this process() run
         for key, val in products.requested.items():
             assets.update(self._products[val[0]]['assets'])
 
         if assets == set(['C1', 'DN']):
-            asset = list(assets.intersection(self.assets.keys()))[0]
+            if 'C1' in self.assets: # prefer C1
+                asset = 'C1'
+            elif 'DN' in self.assets:
+                asset = 'DN'
+            else:
+                raise ValueError(
+                    'No valid asset found for C1 nor DN for {} {}'.format(
+                        self.basename))
         else:
             if len(assets) > 1:
-                raise Exception('This driver does not support creation of products'
-                                ' from different Assets at the same time')
+                # TODO document the reason why not
+                raise ValueError("Cannot create products from"
+                                 " this combination of assets:  {}".format(assets))
             asset = list(assets)[0]
 
         a_obj = self.assets[asset] # TODO replace the latter with the former
@@ -1002,14 +963,45 @@ class landsatData(Data):
                         # cloud iff bit 4
                         # (cc_med or cc_high) iff bit 6
                         # (csc_med or csc_high) iff bit 8
+
                         def get_bit(np_array, i):
                             """Return an array with the ith bit extracted from each cell."""
                             return (np_array >> i) & 0b1
-                        np_cloudmask = get_bit(npqa, 4) & get_bit(npqa, 6) | get_bit(npqa, 8)
-                        imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
+
+                        # gippy 1.0 version
+                        #np_cloudmask = get_bit(npqa, 4) & get_bit(npqa, 6) | get_bit(npqa, 8)
+                        #imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
+                        #verbose_out("writing " + fname, 2)
+                        #imgout.set_bandname('Cloud Mask', 1)
+                        #imgout[0].write(np_cloudmask)
+
+                        # here down is dev version; needs update for gippy 1.0
+                        np_cloudmask = numpy.logical_not(
+                            get_bit(npqa, 4) &
+                            get_bit(npqa, 6) |
+                            get_bit(npqa, 8)
+                        )
+
+                        # We already have an implicit dependency on scipy (from
+                        # Py6S), but life might be more simple if we just move
+                        # the whole cloudmask extraction into gippy.
+                        from scipy import ndimage
+                        np_cloudmask_erroded = ndimage.binary_erosion(
+                            np_cloudmask,
+                            structure=numpy.ones((10, 10), dtype=numpy.uint8),
+                        )
+                        # 
+
+                        imgout = gippy.GeoImage(fname, img, gippy.GDT_Byte, 1)
                         verbose_out("writing " + fname, 2)
-                        imgout.set_bandname('Cloud Mask', 1)
-                        imgout[0].write(np_cloudmask)
+                        imgout.SetBandName(
+                            self._products[val[0]]['bands'][0], 1
+                        )
+                        imgout.SetMeta('GIPS_LANDSAT_VERSION', self.version)
+                        imgout[0].SetNoData(0.)
+                        imgout[0].Write(
+                            np_cloudmask_erroded.astype(numpy.uint8)
+                        )
                     elif val[0] == 'rad':
                         imgout = gippy.GeoImage.create_from(img, fname, len(visbands), 'int16')
                         self.set_band_names(imgout, visbands)
@@ -1020,7 +1012,8 @@ class landsatData(Data):
                                 img[col].save(imgout[col])
                         else:
                             for col in visbands:
-                                ((img[col] - atm6s.results[col][1]) / atm6s.results[col][0]).save(imgout[col])
+                                ((img[col] - atm6s.results[col][1]) /
+                                    atm6s.results[col][0]).save(imgout[col])
                         # Mask out any pixel for which any band is nodata
                         #imgout.ApplyMask(img.DataMask())
                     elif val[0] == 'ref':
@@ -1225,11 +1218,8 @@ class landsatData(Data):
                         }
                         amd[p].update(self._products[p])
                         amd[p].pop('assets')
-                    prodout = self._process_acolite(
-                        asset=self.assets[asset],
-                        aco_proc_dir=aco_proc_dir,
-                        products=amd,
-                    )
+                    prodout = gips.atmosphere.process_acolite(
+                            self.assets[asset], asset, aco_proc_dir, amd)
                     endtime = datetime.now()
                     for k, fn in prodout.items():
                         self.AddFile(sensor, k, fn)

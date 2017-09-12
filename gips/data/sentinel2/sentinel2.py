@@ -121,7 +121,10 @@ class sentinel2Asset(Asset):
             # TODO find real start date for S2 data:
             # https://scihub.copernicus.eu/dhus/search?q=filename:S2?*&orderby=ingestiondate%20asc
             # (change to orderby=ingestiondate%20desc if needed)
-            'startdate': datetime.date(2015, 1, 1), # used to prevent impossible searches
+            'startdate': datetime.date(2015, 1, 1), # used to prevent
+            # impossible searches
+            # TODO: (may need to change -- nigeria work shows no
+            # imagery before August 2015)
             'latency': 3, # actually seems to be 3,7,3,7..., but this value seems to be unused;
                           # only needed by Asset.end_date and Asset.available, but those are never called?
         },
@@ -137,7 +140,8 @@ class sentinel2Asset(Asset):
     # 19TCH_S2A_OPER_PRD_MSIL1C_PDMC_20170221T213809_R050_V20151123T091302_20151123T091302.zip
     _orig_name_re = (
         '(?P<sensor>S2[AB])_OPER_PRD_MSIL1C_....' # sensor
-        '_\d{8}T\d{6}' # processing date (don't care)
+        '_(?P<pyear>\d{4})(?P<pmon>\d\d)(?P<pday>\d\d)' # processing date
+        'T(?P<phour>\d\d)(?P<pmin>\d\d)(?P<psec>\d\d)' # processing time
         '_R(?P<rel_orbit>\d\d\d)' # relative orbit, not sure if want
         # observation datetime:
         '_V(?P<year>\d{4})(?P<mon>\d\d)(?P<day>\d\d)' # year, month, day
@@ -148,7 +152,11 @@ class sentinel2Asset(Asset):
         '^(?P<sensor>S2[AB])_MSIL1C_' # sensor
         '(?P<year>\d{4})(?P<mon>\d\d)(?P<day>\d\d)' # year, month, day
         'T(?P<hour>\d\d)(?P<min>\d\d)(?P<sec>\d\d)' # hour, minute, second
-        '_N\d{4}_R\d\d\d_T' + _tile_re + '_\d{8}T\d{6}.zip$') # tile
+        '_N\d{4}_R\d\d\d_T' + _tile_re +  # tile
+        '_(?P<pyear>\d{4})(?P<pmon>\d\d)(?P<pday>\d\d)' # processing date
+        'T(?P<phour>\d\d)(?P<pmin>\d\d)(?P<psec>\d\d)' # processing time
+        '.zip$'
+    )
 
     _asset_styles = {
         'original': {
@@ -160,7 +168,8 @@ class sentinel2Asset(Asset):
             # TODO '/.*/' can be misleading due to '/' satisfying '.', so rework into '/[^/]*/'
             'raster-re': r'^.*/GRANULE/.*/IMG_DATA/.*_T{tileid}_B(?P<band>\d[\dA]).jp2$',
             ## internal metadata file patterns
-            'datastrip-md-re': '^.*/DATASTRIP/.*/.*.xml$', # only XML file under DATASTRIP/
+            # updated assumption: only XML file in DATASTRIP/ (not including subdirs)
+            'datastrip-md-re': '^.*/DATASTRIP/[^/]+/[^/]*.xml$', 
             'tile-md-re': '^.*/GRANULE/.*_T{tileid}_.*/.*_T{tileid}.xml$',
         },
         _2016_12_07: {
@@ -387,21 +396,22 @@ class sentinel2Asset(Asset):
     def tile_list(cls, file_name):
         """Extract a list of tiles from the given old-style asset."""
         # find an xml file with a very long name in the top-level .SAFE/ directory
-        # eg S2A_OPER_MTD_SAFL1C_PDMC_20161030T191653_R079_V20161030T095132_20161030T095132.xml
-        file_pattern = r'^[^/]+\.SAFE/[^/]{78}\.xml$'
-        subtree_tag = 'Granules'
-        tile_re = '_T' + cls._tile_re + '_' # group 'tile' is handy
+        # eg
+        # S2A_OPER_MTD_SAFL1C_PDMC_20161030T191653_R079_V20161030T095132_20161030T095132.xml
+        tiles = set()
+        file_pattern = cls._asset_styles['original']['raster-re'].format(tileid=cls._tile_re)
+        p = re.compile(file_pattern)
         with zipfile.ZipFile(file_name) as asset_zf:
-            metadata_fn = next(fn for fn in asset_zf.namelist() if re.match(file_pattern, fn))
-            with asset_zf.open(metadata_fn) as metadata_zf:
-                tree = cElementTree.parse(metadata_zf)
-                tiles = []
-                for elem in tree.iter(subtree_tag):
-                    attrib = elem.attrib['granuleIdentifier']
-                    # from this:  S2A_OPER_MSI_L1C_TL_EPA__20170221T200353_A002192_T35UNQ_N02.04
-                    # want this:  35UNQ
-                    tiles.append(re.search(tile_re, attrib).group('tile'))
-                return tiles
+            for f in asset_zf.namelist():
+                m = p.match(f)
+                if m:
+                    tiles.add(m.group('tile'))
+        if not tiles:
+            raise Exception(
+                'Datastrip asset contains no tiles???? ({})'
+                .format(file_name)
+            )
+        return list(tiles)
 
 
     def updated(self, newasset):
@@ -802,14 +812,20 @@ class sentinel2Data(Data):
         with utils.make_temp_dir() as tmpdir:
             upsampled_filenames = [os.path.join(tmpdir, os.path.basename(f) + '.tif')
                     for f in src_filenames]
+            #  TODO:  this should be stuffed into the 'env' of Popen, but is a
+            #         necessary hack for now.
+            os.putenv(
+                'GDAL_NUM_THREADS',
+                str(int(gippy.Options.NumCores()))
+            )
             for in_fn, out_fn in zip(src_filenames, upsampled_filenames):
-                cmd_str = 'gdalwarp -tr 10 10 {} {}'.format(in_fn, out_fn)
+                cmd_str = 'gdal_translate -tr 20 20 -oo NUM_THREADS=1 {} {}'.format(in_fn, out_fn)
                 cmd_args = shlex.split(cmd_str)
                 self._time_report('Upsampling:  ' + cmd_str)
                 p = subprocess.Popen(cmd_args)
                 p.communicate()
                 if p.returncode != 0:
-                    raise IOError("Expected gdalwarp exit status 0, got {}".format(
+                    raise IOError("Expected gdal_translate exit status 0, got {}".format(
                             p.returncode))
             upsampled_img = gippy.GeoImage(upsampled_filenames)
             upsampled_img.add_meta(self.meta_dict())
@@ -946,31 +962,45 @@ class sentinel2Data(Data):
         safe_zip = zipfile.ZipFile(self.assets[asset_type].filename, 'r')
         metadata_xml = None
         for name in safe_zip.namelist():
-            if re.match(self.Asset._asset_styles[asset_style]['tile-md-re'], name):
+            if re.match(self.Asset._asset_styles[asset_style]['tile-md-re'].format(tileid=self.assets[asset_type].tile), name):
                 safe_zip.extract(name, self._temp_proc_dir)
                 metadata_xml = "{}/{}".format(self._temp_proc_dir, name)
         if not metadata_xml:
             raise IOError("{} does not contain expected metadatafile.".format(safe_zip.filename))
-        subprocess.check_call(
-            [
-                "fmask_sentinel2makeAnglesImage.py",
-                "-i", metadata_xml,
-                "-o", "%s/angles.img" % self._temp_proc_dir,
-            ]
-            #stderr=DEVNULL
-        )
         safe_zip.close()
 
-        subprocess.check_call(
-            [
-                "fmask_sentinel2Stacked.py",
-                "-a", "%s/allbands.vrt" % self._temp_proc_dir,
-                "-z", "%s/angles.img" % self._temp_proc_dir,
-                "-o", "%s/cloudmask.tif" % self._temp_proc_dir,
-                "-v",
-            ],
-            stderr=DEVNULL
-        )
+        angles_cmd_list = [
+            "fmask_sentinel2makeAnglesImage.py",
+            "-i", metadata_xml,
+            "-o", "%s/angles.img" % self._temp_proc_dir,
+        ]
+        fmask_cmd_list = [
+            "fmask_sentinel2Stacked.py",
+            "-a", "%s/allbands.vrt" % self._temp_proc_dir,
+            "-z", "%s/angles.img" % self._temp_proc_dir,
+            "-o", "%s/cloudmask.tif" % self._temp_proc_dir,
+            "-v",
+        ]
+        # Temp dir for intermediaries that pyfmask generates in the current
+        # working directory.  N.B.: the mask is output to self._temp_proc_dir.
+        with utils.make_temp_dir(prefix='gips-py-fmask', dir='/tmp') as tdir:
+            prev_wd = os.getcwd()
+            os.chdir(tdir)
+            try:
+                utils.verbose_out('running: ' + ' '.join(angles_cmd_list), 3)
+                subprocess.check_call(
+                    angles_cmd_list,
+                    #stderr=DEVNULL
+                )
+                utils.verbose_out('running: ' + ' '.join(fmask_cmd_list), 3)
+                subprocess.check_call(
+                    fmask_cmd_list,
+                    stderr=DEVNULL
+                )
+            except:
+                raise
+            finally:
+                os.chdir(prev_wd)
 
         DEVNULL.close()
         fmask_image = gippy.GeoImage("{}/cloudmask.tif".format(self._temp_proc_dir))

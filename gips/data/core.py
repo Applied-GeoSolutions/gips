@@ -309,7 +309,7 @@ class Asset(object):
                 return [self.filename]
 
 
-    def extract(self, filenames=tuple()):
+    def extract(self, filenames=tuple(), path=None):
         """Extract given files from asset (if it's a tar or zip).
 
         Extracted files are placed in the same dir as the asset file.
@@ -320,7 +320,8 @@ class Asset(object):
             open_file = zipfile.ZipFile(self.filename)
         else:
             raise Exception('%s is not a valid tar or zip file' % self.filename)
-        path = os.path.dirname(self.filename)
+        if not path:
+            path = os.path.dirname(self.filename)
         if len(filenames) == 0:
             filenames = self.datafiles()
         extracted_files = []
@@ -932,7 +933,7 @@ class Data(object):
         for root, dirs, filenames in os.walk(path):
             for filename in filenames:
                 f = os.path.join(root, filename)
-                VerboseOut(f, 2)
+                VerboseOut(f, 4)
                 parts = basename(f).split('_')
                 if len(parts) == 3 or len(parts) == 4:
                     with utils.error_handler('Error parsing product date', continuable=True):

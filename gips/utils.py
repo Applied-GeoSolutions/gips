@@ -181,8 +181,12 @@ def find_files(regex, path='.'):
     Only regular files and symbolic links to regular files are returned.
     """
     compiled_re = re.compile(regex)
-    return [os.path.join(path, f) for f in os.listdir(path)
-            if os.path.isfile(os.path.join(path, f)) and compiled_re.match(f)]
+    ret = []
+    for f in os.listdir(path):
+        fpath = os.path.join(path, f)
+        if os.path.isfile(fpath) and compiled_re.match(f):
+            ret.append(fpath)
+    return ret
 
 
 ##############################################################################

@@ -7,7 +7,7 @@ from _pytest.assertion.util import _compare_eq_dict, _diff_text
 from gips.test.sys.util import GipsProcResult, set_constants
 
 # configure logging (can config in command-line & config file, see below)
-log_format = '%(levelname)-8s %(filename)s:%(lineno)d: %(message)s'
+log_format = '%(levelname)-8s %(asctime)s %(filename)s:%(lineno)d: %(message)s'
 root_logger = logging.getLogger()
 root_streamer = logging.StreamHandler()
 root_streamer.setFormatter(logging.Formatter(log_format))
