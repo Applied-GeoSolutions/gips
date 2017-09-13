@@ -275,13 +275,13 @@ class aodData(Data):
         start = datetime.datetime.now()
         if len(filenames) > 0:
             img = gippy.GeoImage(filenames)
-            imgout = gippy.GeoImage(fout, img, gippy.GDT_Float32, 2)
-            imgout.SetNoData(-32768)
-            img.Mean(imgout[0])
-            meanimg = imgout[0].Read()
-            for band in range(0, img.NumBands()):
-                data = img[band].Read()
-                mask = img[band].DataMask()
+            imgout = gippy.GeoImage.create_from(img, fout, 2, 'float32')
+            imgout.set_nodata(-32768)
+            img.mean(imgout[0])
+            meanimg = imgout[0].read()
+            for band in range(len(img)):
+                data = img[band].read()
+                mask = img[band].data_mask()
                 var = numpy.multiply(numpy.power(data - meanimg, 2), mask)
                 if band == 0:
                     totalvar = var
@@ -293,7 +293,7 @@ class aodData(Data):
             totalvar[inds] = -32768
             inds = numpy.where(counts != 0)
             totalvar[inds] = numpy.divide(totalvar[inds], counts[inds])
-            imgout[1].Write(totalvar)
+            imgout[1].write(totalvar)
             t = datetime.datetime.now() - start
             utils.verbose_out(
                 '%s: mean/var for %s files processed in %s' %
@@ -304,14 +304,14 @@ class aodData(Data):
         return imgout
 
     @classmethod
-    def _read_point(cls, filename, roi, nodata):
+    def _read_point(cls, filename, nodata, x0, y0, x1, y1):
         """ Read single point from mean/var file and return if valid, or mean/var of 3x3 neighborhood """
         if not os.path.exists(filename):
             return (numpy.nan, numpy.nan)
         with utils.error_handler('Unable to read point from {}'.format(filename), continuable=True):
             img = gippy.GeoImage(filename)
-            vals = img[0].Read(roi).squeeze()
-            variances = img[1].Read(roi)
+            vals = img[0].read()[x0:x1,y0:y1].squeeze()
+            variances = img[1].read()[x0:x1,y0:y1]
             vals[numpy.where(vals == nodata)] = numpy.nan
             variances[numpy.where(variances == nodata)] = numpy.nan
             val = numpy.nan
@@ -338,16 +338,18 @@ class aodData(Data):
         """
         pixx = int(numpy.round(float(lon) + 179.5))
         pixy = int(numpy.round(89.5 - float(lat)))
-        roi = gippy.Recti(pixx - 1, pixy - 1, 3, 3)
+        # first point is inclusive, second point is exclusive
+        x0, y0, x1, y1 = pixx - 1, pixy - 1, pixx + 2, pixy + 2
         # try reading actual data file first
         aod = numpy.nan
         with utils.error_handler('Unable to load aod values', continuable=True):
             # this is just for fetching the data
             inv = cls.inventory(dates=date.strftime('%Y-%j'), fetch=fetch, products=['aod'])
             img = inv[date].tiles[cls.Asset.Repository._the_tile].open('aod')
-            vals = img[0].Read(roi)
+            npa = img[0].read()
+            vals = img[0].read()[x0:x1,y0:y1]
             # TODO - do this automagically in swig wrapper
-            vals[numpy.where(vals == img[0].NoDataValue())] = numpy.nan
+            vals[numpy.where(vals == img[0].nodata())] = numpy.nan
             aod = vals[1, 1]
             img = None
             source = 'MODIS (MOD08_D3)'
@@ -366,7 +368,7 @@ class aodData(Data):
             source = 'Weighted estimate using MODIS LTA values'
 
             def _calculate_estimate(filename):
-                val, var = cls._read_point(filename, roi, nodata)
+                val, var = cls._read_point(filename, nodata, x0, y0, x1, y1)
                 aod = numpy.nan
                 norm = numpy.nan
 
