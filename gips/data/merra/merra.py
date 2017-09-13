@@ -421,6 +421,21 @@ class merraData(Data):
     #    }
     #    return data
 
+    def write_product(self, prod_type, source_npa,
+                      fout, nx, ny, units, missing):
+        """Generate merra products in a uniform way.
+
+        Note 'units' argument is presently unused as gippy 1.0 no longer
+        supports a way to set the unit type."""
+        utils.verbose_out('writing ' + fout, 4)
+        # always 1 band, always float32
+        imgout = gippy.GeoImage.create(fout, nx, ny, 1, dtype='float32')
+        imgout.set_bandname(prod_type, 1)
+        #imgout.SetUnits(units)
+        imgout.set_nodata(missing)
+        imgout.set_srs(self._projection)
+        imgout.set_affine(np.array(self._geotransform))
+        imgout[0].write(np.array(np.flipud(source_npa)).astype('float32'))
 
     def getlonlat(self):
         """ return the center coordinates of the MERRA tile
@@ -457,15 +472,7 @@ class merraData(Data):
         # apply reduce rule
         daily = fun(hourly)
         daily[daily.mask] = missing
-        utils.verbose_out('writing %s' % fout, 4)
-        imgout = gippy.GeoImage(fout, nx, ny, 1, gippy.GDT_Float32)
-        imgout[0].Write(np.array(np.flipud(daily)).astype('float32'))
-        imgout.SetBandName(prod, 1)
-        imgout.SetUnits(units)
-        imgout.SetNoData(missing)
-        imgout.SetProjection(self._projection)
-        imgout.SetAffine(np.array(self._geotransform))
-
+        self.write_product(prod, daily, fout, nx, ny, units, missing)
 
     @Data.proc_temp_dir_manager
     def process(self, *args, **kwargs):
@@ -555,14 +562,7 @@ class merraData(Data):
                 rh[rh < 0.] = 0.
                 rhday = rh.mean(axis=0)
                 rhday[rhday.mask] = missing
-                utils.verbose_out('writing %s' % fout, 4)
-                imgout = gippy.GeoImage(fout, nx, ny, 1, gippy.GDT_Float32)
-                imgout[0].Write(np.array(np.flipud(rhday)).astype('float32'))
-                imgout.SetBandName(val[0], 1)
-                imgout.SetUnits('%')
-                imgout.SetNoData(missing)
-                imgout.SetProjection(self._projection)
-                imgout.SetAffine(np.array(self._geotransform))
+                self.write_product(prod, rhday, fout, nx, ny, '%', missing)
 
             elif val[0] == "frland":
                 startdate = merraAsset._assets[self._products[val[0]]['assets'][0]]['startdate']
@@ -584,14 +584,8 @@ class merraData(Data):
                 frland = frland.squeeze()
                 if frland.mask.sum() > 0:
                     frland[frland.mask] = missing
-                utils.verbose_out('writing %s' % fout, 4)
-                imgout = gippy.GeoImage(fout, nx, ny, 1, gippy.GDT_Float32)
-                imgout[0].Write(np.array(np.flipud(frland)).astype('float32'))
-                imgout.SetBandName(prod, 1)
-                imgout.SetUnits('fraction')
-                imgout.SetNoData(missing)
-                imgout.SetProjection(self._projection)
-                imgout.SetAffine(np.array(self._geotransform))
+                self.write_product(prod, frland,
+                                   fout, nx, ny, 'fraction', missing)
 
             """
             if val[0] == "temp_modis":
