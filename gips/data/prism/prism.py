@@ -309,17 +309,16 @@ class prismData(Data):
 
                 with self.make_temp_proc_dir() as tmp_dir:
                     tmp_fp = os.path.join(tmp_dir, prod_fn)
-                    oimg = GeoImage(tmp_fp, imgs[0])
-                    oimg.SetNoData(-9999)
-                    oimg.SetBandName(
+                    oimg = GeoImage.create_from(imgs[0], tmp_fp, 1, 'float32')
+                    oimg.set_nodata(-9999)
+                    oimg.set_bandname(
                         description + '({} day window)'.format(lag), 1
                     )
-                    for chunk in oimg.Chunks():
-                        oarr = oimg[0].Read(chunk) * 0.0 # wat
+                    for chunk in oimg.chunks():
+                        oarr = oimg[0].read(chunk) * 0.0 # wat
                         for img in imgs:
-                            oarr += img[0].Read(chunk)
-                        oimg[0].Write(oarr, chunk)
-                    oimg.Process()
+                            oarr += img[0].read(chunk)
+                        oimg[0].write(oarr, chunk)
                     os.rename(tmp_fp, archived_fp)
                 oimg = None  # help swig+gdal with GC
                 products.requested.pop(key)
