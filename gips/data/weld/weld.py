@@ -140,6 +140,10 @@ class weldAsset(Asset):
         return fetched
 
 
+def sliced_read(img, *bands):
+    """Read multiple bands of a GeoImage and return them as numpy arrays."""
+    return [img[b].Read() for b in bands]
+
 class weldData(Data):
     """ A tile of data (all assets and products) """
     name = 'WELD'
@@ -167,6 +171,17 @@ class weldData(Data):
         },
     }
 
+    def write_product(self, fname, refl, dtype, nodata, PROJ, npa_payload, band_name, meta):
+        print "writing", fname
+        imgout = gippy.GeoImage(fname, refl, dtype, 1)
+        imgout.SetNoData(nodata)
+        imgout.SetOffset(0.0)
+        imgout.SetGain(1.0)
+        imgout.SetProjection(PROJ)
+        imgout[0].Write(npa_payload)
+        imgout.SetBandName(band_name, 1)
+        imgout.SetMeta({k: str(v) for k, v in meta.iteritems()})
+
     @Data.proc_temp_dir_manager
     def process(self, *args, **kwargs):
         """Process requested products."""
@@ -181,6 +196,7 @@ class weldData(Data):
 
             meta = self.meta_dict()
             meta['AVAILABLE_ASSETS'] = ''
+            meta['VERSION'] = '1.0'
 
             # Check for asset availability
             needed_assets = self._products[val[0]]['assets']
@@ -195,22 +211,15 @@ class weldData(Data):
                            % (str(needed_assets), str(self.date), str(self.id), ), 5)
                 continue
 
+            refl = gippy.GeoImage(allsds)
+            # find the no-data value and sanity-check its commonality
+            nodata_set = set(refl[b].NoDataValue() for b in (1, 2, 3, 4))
+            assert len(nodata_set) == 1
+            missing = nodata_set.pop()
+
             # SNOW ICE INDEX PRODUCT
             if val[0] == "ndsi":
-                VERSION = "1.0"
-                meta['VERSION'] = VERSION
-                refl = gippy.GeoImage(allsds)
-                # band 2
-                grnimg = refl[1].Read()
-                missing = refl[1].NoDataValue()
-                # band 4
-                nirimg = refl[3].Read()
-                assert refl[3].NoDataValue() == missing
-                # band 5
-                swrimg = refl[4].Read()
-                assert refl[4].NoDataValue() == missing
-                cldimg = refl[11].Read()
-                # accaimg = refl[13].Read()
+                grnimg, nirimg, swrimg, cldimg = sliced_read(refl, 1, 3, 4, 11)
                 ndsi = missing + np.zeros_like(grnimg)
                 wg = np.where((grnimg != missing) & (swrimg != missing) & (grnimg + swrimg != 0.0) & (cldimg == 0))
                 ng = len(wg[0])
@@ -220,31 +229,14 @@ class weldData(Data):
                 ndsi[wg] = (grnimg[wg] - swrimg[wg]) / (grnimg[wg] + swrimg[wg])
                 print ndsi.min(), ndsi.max()
                 print ndsi[wg].min(), ndsi[wg].max()
-                print "writing", fname
-                imgout = gippy.GeoImage(fname, refl, gippy.GDT_Float32, 1)
-                imgout.SetNoData(float(missing))
-                imgout.SetOffset(0.0)
-                imgout.SetGain(1.0)
-                imgout.SetProjection(PROJ)
-                imgout[0].Write(ndsi)
-                imgout.SetBandName('NDSI', 1)
+                self.write_product(fname, refl, gippy.GDT_Float32,
+                                   float(missing), PROJ, ndsi, 'NDSI', meta)
 
             # SNOW ICE COVER PRODUCT
             if val[0] == "snow":
-                VERSION = "1.0"
-                meta['VERSION'] = VERSION
-                refl = gippy.GeoImage(allsds)
                 # band 2
-                grnimg = refl[1].Read()
-                missing = refl[1].NoDataValue()
-                # band 4
-                nirimg = refl[3].Read()
-                assert refl[3].NoDataValue() == missing
-                # band 5
-                swrimg = refl[4].Read()
-                assert refl[4].NoDataValue() == missing
-                cldimg = refl[11].Read()
-                accaimg = refl[13].Read()
+                grnimg, nirimg, swrimg, cldimg, accaimg = sliced_read(
+                        refl, 1, 3, 4, 11, 13)
                 snow = 127 + np.zeros_like(grnimg)
                 ndsi = missing + np.zeros_like(grnimg)
                 wg = np.where((grnimg != missing) & (swrimg != missing) & (grnimg + swrimg != 0.0) & (cldimg == 0))
@@ -262,28 +254,12 @@ class weldData(Data):
                     snow[ws] = 1
                 if (nc > 0):
                     snow[wc] = 0
-                print "writing", fname
-                imgout = gippy.GeoImage(fname, refl, gippy.GDT_Byte, 1)
-                imgout.SetNoData(127)
-                imgout.SetOffset(0.)
-                imgout.SetGain(1.)
-                imgout.SetProjection(PROJ)
-                imgout[0].Write(snow)
-                imgout.SetBandName('SNOW', 1)
+                self.write_product(fname, refl, gippy.GDT_Byte, 127, PROJ, snow, 'SNOW', meta)
 
             # VEGETATION INDEX PRODUCT
             if val[0] == "ndvi":
-                VERSION = "1.0"
-                meta['VERSION'] = VERSION
-                refl = gippy.GeoImage(allsds)
-                # band 3
-                redimg = refl[2].Read()
-                missing = refl[2].NoDataValue()
-                # band 4
-                nirimg = refl[3].Read()
-                assert refl[3].NoDataValue() == missing
-                cldimg = refl[11].Read()
-                accaimg = refl[13].Read()
+                redimg, nirimg, cldimg, accaimg = sliced_read(
+                        refl, 2, 3, 11, 13)
                 ndvi = missing + np.zeros_like(redimg)
                 wg = np.where((redimg != missing) & (nirimg != missing) & (redimg + nirimg != 0.0) & (cldimg == 0))
                 ng = len(wg[0])
@@ -293,30 +269,12 @@ class weldData(Data):
                 ndvi[wg] = (nirimg[wg] - redimg[wg]) / (nirimg[wg] + redimg[wg])
                 print ndvi.min(), ndvi.max()
                 print ndvi[wg].min(), ndvi[wg].max()
-                print "writing", fname
-                imgout = gippy.GeoImage(fname, refl, gippy.GDT_Float32, 1)
-                imgout.SetNoData(float(missing))
-                imgout.SetOffset(0.0)
-                imgout.SetGain(1.0)
-                imgout.SetProjection(PROJ)
-                imgout[0].Write(ndvi)
-                imgout.SetBandName('NDVI', 1)
+                self.write_product(fname, refl, gippy.GDT_Float32,
+                                   float(missing), PROJ, ndvi, 'NDVI', meta)
 
             # BRIGHTNESS PRODUCT
             if val[0] == "brgt":
-                VERSION = "1.0"
-                meta['VERSION'] = VERSION
-                refl = gippy.GeoImage(allsds)
-                # band 2
-                grnimg = refl[1].Read()
-                missing = refl[1].NoDataValue()
-                # band 3
-                redimg = refl[2].Read()
-                assert refl[2].NoDataValue() == missing
-                # band 4
-                nirimg = refl[3].Read()
-                assert refl[3].NoDataValue() == missing
-                cldimg = refl[11].Read()
+                grnimg, redimg, nirimg, cldimg = sliced_read(refl, 1, 2, 3, 11)
                 brgt = missing + np.zeros_like(redimg)
                 wg = np.where((grnimg != missing) & (redimg != missing) & (nirimg != missing) & (cldimg == 0))
                 ng = len(wg[0])
@@ -326,18 +284,8 @@ class weldData(Data):
                 brgt[wg] = (grnimg[wg] + redimg[wg] + nirimg[wg])/3.
                 print brgt.min(), brgt.max()
                 print brgt[wg].min(), brgt[wg].max()
-                print "writing", fname
-                imgout = gippy.GeoImage(fname, refl, gippy.GDT_Float32, 1)
-                imgout.SetNoData(float(missing))
-                imgout.SetOffset(0.0)
-                imgout.SetGain(1.0)
-                imgout.SetProjection(PROJ)
-                imgout[0].Write(brgt)
-                imgout.SetBandName('BRGT', 1)
-
-            # set metadata
-            meta = {k: str(v) for k, v in meta.iteritems()}
-            imgout.SetMeta(meta)
+                self.write_product(fname, refl, gippy.GDT_Float32,
+                                   float(missing), PROJ, brgt, 'BRGT', meta)
 
             # add product to inventory
             archive_fp = self.archive_temp_path(fname)
