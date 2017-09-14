@@ -142,7 +142,7 @@ class weldAsset(Asset):
 
 def sliced_read(img, *bands):
     """Read multiple bands of a GeoImage and return them as numpy arrays."""
-    return [img[b].Read() for b in bands]
+    return [img[b].read() for b in bands]
 
 class weldData(Data):
     """ A tile of data (all assets and products) """
@@ -173,14 +173,14 @@ class weldData(Data):
 
     def write_product(self, fname, refl, dtype, nodata, PROJ, npa_payload, band_name, meta):
         print "writing", fname
-        imgout = gippy.GeoImage(fname, refl, dtype, 1)
-        imgout.SetNoData(nodata)
-        imgout.SetOffset(0.0)
-        imgout.SetGain(1.0)
-        imgout.SetProjection(PROJ)
-        imgout[0].Write(npa_payload)
-        imgout.SetBandName(band_name, 1)
-        imgout.SetMeta({k: str(v) for k, v in meta.iteritems()})
+        imgout = gippy.GeoImage.create_from(refl, fname, 1, dtype)
+        imgout.set_nodata(nodata)
+        imgout.set_offset(0.0)
+        imgout.set_gain(1.0)
+        imgout.set_srs(PROJ)
+        imgout.set_bandname(band_name, 1)
+        imgout.add_meta({k: str(v) for k, v in meta.iteritems()})
+        imgout[0].write(npa_payload)
 
     @Data.proc_temp_dir_manager
     def process(self, *args, **kwargs):
@@ -213,7 +213,7 @@ class weldData(Data):
 
             refl = gippy.GeoImage(allsds)
             # find the no-data value and sanity-check its commonality
-            nodata_set = set(refl[b].NoDataValue() for b in (1, 2, 3, 4))
+            nodata_set = set(refl[b].nodata() for b in (1, 2, 3, 4))
             assert len(nodata_set) == 1
             missing = nodata_set.pop()
 
@@ -229,7 +229,7 @@ class weldData(Data):
                 ndsi[wg] = (grnimg[wg] - swrimg[wg]) / (grnimg[wg] + swrimg[wg])
                 print ndsi.min(), ndsi.max()
                 print ndsi[wg].min(), ndsi[wg].max()
-                self.write_product(fname, refl, gippy.GDT_Float32,
+                self.write_product(fname, refl, 'float32',
                                    float(missing), PROJ, ndsi, 'NDSI', meta)
 
             # SNOW ICE COVER PRODUCT
@@ -254,14 +254,15 @@ class weldData(Data):
                     snow[ws] = 1
                 if (nc > 0):
                     snow[wc] = 0
-                self.write_product(fname, refl, gippy.GDT_Byte, 127, PROJ, snow, 'SNOW', meta)
+                self.write_product(fname, refl, 'byte', 127, PROJ, snow, 'SNOW', meta)
 
             # VEGETATION INDEX PRODUCT
             if val[0] == "ndvi":
                 redimg, nirimg, cldimg, accaimg = sliced_read(
                         refl, 2, 3, 11, 13)
                 ndvi = missing + np.zeros_like(redimg)
-                wg = np.where((redimg != missing) & (nirimg != missing) & (redimg + nirimg != 0.0) & (cldimg == 0))
+                wg = np.where((redimg != missing) & (nirimg != missing) & (
+                        redimg + nirimg != 0.0) & (cldimg == 0))
                 ng = len(wg[0])
                 print "ng", ng
                 if ng == 0:
@@ -269,7 +270,7 @@ class weldData(Data):
                 ndvi[wg] = (nirimg[wg] - redimg[wg]) / (nirimg[wg] + redimg[wg])
                 print ndvi.min(), ndvi.max()
                 print ndvi[wg].min(), ndvi[wg].max()
-                self.write_product(fname, refl, gippy.GDT_Float32,
+                self.write_product(fname, refl, 'float32',
                                    float(missing), PROJ, ndvi, 'NDVI', meta)
 
             # BRIGHTNESS PRODUCT
@@ -284,7 +285,7 @@ class weldData(Data):
                 brgt[wg] = (grnimg[wg] + redimg[wg] + nirimg[wg])/3.
                 print brgt.min(), brgt.max()
                 print brgt[wg].min(), brgt[wg].max()
-                self.write_product(fname, refl, gippy.GDT_Float32,
+                self.write_product(fname, refl, 'float32',
                                    float(missing), PROJ, brgt, 'BRGT', meta)
 
             # add product to inventory
