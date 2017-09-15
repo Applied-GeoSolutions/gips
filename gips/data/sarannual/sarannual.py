@@ -149,15 +149,16 @@ class sarannualData(Data):
                 bands = [datafiles[b] for b in ["sl_HH", "sl_HV"] if b in datafiles]
                 if len(bands) > 0:
                     img = gippy.GeoImage(bands)
-                    img.SetNoData(0)
+                    img.set_nodata(0)
                     mask = gippy.GeoImage(datafiles['mask'], False)
-                    img.AddMask(mask[0] == 255)
-                    imgout = gippy.GeoImage(fname, img, gippy.GDT_Float32)
-                    imgout.SetNoData(-32768)
-                    for b in range(0, imgout.NumBands()):
-                        imgout.SetBandName(img[b].Description(), b + 1)
-                        (img[b].pow(2).log10() * 10 - 83.0).Process(imgout[b])
-                    fname = imgout.Filename()
+                    img.add_mask(mask[0] == 255)
+                    imgout = gippy.GeoImage.create_from(img, fname,
+                                                        len(img), 'float32')
+                    imgout.set_nodata(-32768)
+                    for b in range(len(imgout)):
+                        imgout.set_bandname(img[b].description(), b + 1)
+                        (img[b].pow(2).log10() * 10 - 83.0).save(imgout[b])
+                    fname = imgout.filename()
                     img = None
                     imgout = None
                     [RemoveFiles([f], ['.hdr', '.aux.xml']) for k, f in datafiles.items() if k != 'hdr']
@@ -167,6 +168,6 @@ class sarannualData(Data):
                     os.rename(datafiles['C'], fname)
                     os.rename(datafiles['C'] + '.hdr', fname + '.hdr')
                     img = gippy.GeoImage(fname)
-                    img.SetNoData(0)
+                    img.set_nodata(0)
                     img = None
             self.AddFile(self.sensor_set[0], key, fname)
