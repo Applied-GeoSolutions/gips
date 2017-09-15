@@ -287,7 +287,7 @@ class sarAsset(Asset):
 
         dateimg = self._jaxa_opener(datefile)
         dateimg.set_nodata(0)
-        datevals = numpy.unique(dateimg.Read())
+        datevals = numpy.unique(dateimg.read())
         dateimg = None
         RemoveFiles((datefile,), ['.hdr', '.aux.xml'])
         dates = [
@@ -409,7 +409,8 @@ class sarData(Data):
                     self.date -
                     self.assets[asset]._sensors[sensor]['startdate']).days
                 img.add_mask(dateimg[0] == dateday)
-                imgout = gippy.GeoImage.create_from(fname, img, dtype='float32')
+                imgout = gippy.GeoImage.create_from(img, fname,
+                                                    len(img), 'float32')
                 imgout.set_nodata(-32768)
                 for b in range(len(imgout)):
                     imgout.set_bandname(img[b].description(), b + 1)
