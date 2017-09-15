@@ -69,7 +69,7 @@ def t_open_vector_error_handling(mocker):
     m_GeoVector = mocker.patch.object(utils, 'GeoVector')
     fname = 'fakedbsetting:bar'
     utils.open_vector(fname)
-    m_GeoVector.return_value.SetPrimaryKey.assert_called_once_with("")
+    m_GeoVector.return_value.set_primary_key.assert_called_once_with("")
 
 
 @pytest.mark.parametrize('dt, variant, expected', (
