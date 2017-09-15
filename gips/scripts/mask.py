@@ -71,25 +71,25 @@ def main():
                         continue
                     meta = ''
                     update = True if args.original else False
-                    # TODO gippy 1.0:  here down needs fixing
+                    # TODO gippy 1.0:  confirm this works from here down
                     img = inv[date].open(p, update=update)
                     if args.filemask is not None:
-                        img.AddMask(mask_file[0])
+                        img.add_mask(mask_file[0]) # TODO hmm
                         meta = basename(args.filemask) + ' '
                     for mask in available_masks:
-                        img.AddMask(inv[date].open(mask)[0])
+                        img.add_mask(inv[date].open(mask)[0]) # TODO hmm
                         meta = meta + basename(inv[date][mask]) + ' '
                     if meta != '':
                         if args.original:
-                            VerboseOut('  %s' % (img.Basename()), 2)
-                            img.Process()
-                            img.SetMeta('MASKS', meta)
+                            VerboseOut('  %s' % (img.basename()), 2)
+                            img.save()
+                            img.add_meta('MASKS', meta)
                         else:
-                            fout = os.path.splitext(img.Filename())[0] + args.suffix + '.tif'
+                            fout = os.path.splitext(img.filename())[0] + args.suffix + '.tif'
                             if not os.path.exists(fout) or args.overwrite:
-                                VerboseOut('  %s -> %s' % (img.Basename(), basename(fout)), 2)
-                                imgout = img.Process(fout)
-                                imgout.SetMeta('MASKS', meta)
+                                VerboseOut('  %s -> %s' % (img.basename(), basename(fout)), 2)
+                                imgout = img.save(fout)
+                                imgout.add_meta('MASKS', meta)
                                 imgout = None
                     img = None
             mask_file = None
