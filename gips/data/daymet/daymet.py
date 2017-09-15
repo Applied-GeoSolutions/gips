@@ -68,14 +68,6 @@ _daymet_driver_version = '0.1'
 # daylength (sec day-1) - dayl.nc
 
 
-def create_datatype(np_dtype):
-    """ provide translation between data type codes """
-    gippy.GDT_UInt8 = gippy.GDT_Byte
-    np_dtype = str(np_dtype)
-    typestr = 'gippy.GDT_' + np_dtype.title().replace('Ui', 'UI')
-    g_dtype = eval(typestr)
-    return g_dtype
-
 class daymetRepository(Repository):
     name = 'Daymet'
     description = 'Daymet weather data'
@@ -158,7 +150,7 @@ class daymetAsset(Asset):
 
     @classmethod
     def generate_metadata(cls, asset, tile, date, url):
-        """Returns a dict suitable to pass to GeoImage.SetMeta()."""
+        """Returns a dict suitable to pass to GeoImage.add_meta()."""
         return {
             'GIPS Version': gips.__version__,
             'GIPS DAYMET Driver Version': _daymet_driver_version,
@@ -203,18 +195,20 @@ class daymetAsset(Asset):
         geo = [float(x0), cls._defaultresolution[0], 0.0,
                float(y0), 0.0, -cls._defaultresolution[1]]
         geo = np.array(geo).astype('double')
-        dtype = create_datatype(data.dtype)
         stage_dir = cls.Repository.path('stage')
         with utils.make_temp_dir(prefix='fetch', dir=stage_dir) as temp_dir:
             temp_fp = os.path.join(temp_dir, asset_bn)
             stage_fp = os.path.join(stage_dir, asset_bn)
-            imgout = gippy.GeoImage(temp_fp, xsz, ysz, 1, dtype)
-            imgout.SetBandName(asset, 1)
-            imgout.SetNoData(-9999.)
-            imgout.SetProjection(PROJ)
-            imgout.SetAffine(geo)
-            imgout[0].Write(data)
-            imgout.SetMeta(cls.generate_metadata(asset, tile, date, url))
+            utils.verbose_out('creating {} with dtype {}'.format(
+                temp_fp, str(data.dtype)), 3)
+            imgout = gippy.GeoImage.create(temp_fp, xsz, ysz, 1,
+                                           dtype=str(data.dtype))
+            imgout.set_bandname(asset, 1)
+            imgout.set_nodata(-9999.)
+            imgout.set_srs(PROJ)
+            imgout.set_affine(geo)
+            imgout[0].write(data)
+            imgout.add_meta(cls.generate_metadata(asset, tile, date, url))
             os.rename(temp_fp, stage_fp)
             return [stage_fp]
 
