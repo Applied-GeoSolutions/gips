@@ -166,6 +166,16 @@ t_project_no_warp = {
     }
 }
 
+t_mask = {
+    'compare_stderr': False,
+    'created': {
+        '0/2017181_LC8_ref-toa.masked.tif': -1584269328,
+    },
+    'ignored': [
+        '0',
+    ],
+}
+
 # TODO this bug rearing its ugly head again?
 # See https://github.com/Applied-GeoSolutions/gips/issues/54
 t_tiles = { 'created': {'012030': None}}

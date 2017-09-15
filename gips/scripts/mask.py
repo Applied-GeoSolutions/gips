@@ -26,7 +26,7 @@ import os
 import gippy
 from gips.parsers import GIPSParser
 from gips.inventory import ProjectInventory
-from gips.utils import Colors, VerboseOut, basename
+from gips.utils import Colors, verbose_out, basename
 from gips import utils
 
 __version__ = '0.1.0'
@@ -52,7 +52,9 @@ def main():
     utils.gips_script_setup(None, args.stop_on_error)
 
     with utils.error_handler('Masking error'):
-        VerboseOut(title)
+        verbose_out(title, 1)
+        if not args.projdir:
+            verbose_out('no project directories specified; doing nothing.', 2)
         for projdir in args.projdir:
 
             if args.filemask is not None:
@@ -60,19 +62,20 @@ def main():
 
             inv = ProjectInventory(projdir, args.products)
             for date in inv.dates:
-                VerboseOut('Masking files from %s' % date)
+                verbose_out('Masking files from %s' % date)
                 if args.filemask is None and args.pmask == []:
                     available_masks = inv[date].masks()
                 else:
                     available_masks = inv[date].masks(args.pmask)
+                if not available_masks:
+                    verbose_out('no masks found for {}'.format(date), 2)
                 for p in inv.products(date):
                     # don't mask any masks
                     if p in available_masks:
                         continue
                     meta = ''
-                    update = True if args.original else False
                     # TODO gippy 1.0:  confirm this works from here down
-                    img = inv[date].open(p, update=update)
+                    img = inv[date].open(p, update=args.original)
                     if args.filemask is not None:
                         img.add_mask(mask_file[0]) # TODO hmm
                         meta = basename(args.filemask) + ' '
@@ -81,16 +84,19 @@ def main():
                         meta = meta + basename(inv[date][mask]) + ' '
                     if meta != '':
                         if args.original:
-                            VerboseOut('  %s' % (img.basename()), 2)
+                            verbose_out('  %s' % (img.basename()), 2)
                             img.save()
                             img.add_meta('MASKS', meta)
                         else:
                             fout = os.path.splitext(img.filename())[0] + args.suffix + '.tif'
                             if not os.path.exists(fout) or args.overwrite:
-                                VerboseOut('  %s -> %s' % (img.basename(), basename(fout)), 2)
+                                verbose_out('  %s -> %s' % (img.basename(), basename(fout)), 2)
                                 imgout = img.save(fout)
                                 imgout.add_meta('MASKS', meta)
                                 imgout = None
+                            else:
+                                msg = "Can't write to {}, file exists"
+                                verbose_out(msg.format(fout), 1, 'stderr')
                     img = None
             mask_file = None
 

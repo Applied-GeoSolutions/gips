@@ -87,11 +87,10 @@ def t_project(setup_landsat_data, clean_repo_env, output_tfe, expected):
 
 
 def t_project_no_warp(setup_landsat_data, clean_repo_env, output_tfe, expected):
-    """Test gips_project modis without warping."""
+    """Test gips_project landsat without warping."""
     args = STD_PROD_ARGS + ('--outdir', OUTPUT_DIR, '--notld')
     actual = output_tfe.run('gips_project', *args)
     assert expected == actual
-
 
 def t_tiles(setup_landsat_data, clean_repo_env, output_tfe, expected):
     """Test gips_tiles modis with warping."""
@@ -122,4 +121,19 @@ def t_stats(setup_landsat_data, clean_repo_env, output_tfe, expected):
     actual = gtfe.run('gips_stats', OUTPUT_DIR)
 
     # check for correct stats content
+    assert expected == actual
+
+
+def t_mask(setup_landsat_data, clean_repo_env, output_tfe, expected):
+    """Test gips_mask via landsat ref-toa and cloudmask."""
+    # setup export directory
+    args_templ = ('gips_project landsat -d 2017-181 -v4'
+                  ' -p ref-toa cloudmask --notld -s {} --outdir {}')
+    args = args_templ.format(NH_SHP_PATH, OUTPUT_DIR).split()
+    output_tfe.run(*args)
+
+    # run the masking operation
+    args_templ = ('gips_mask --pmask cloudmask -v6 --suffix .masked {}')
+    args = args_templ.format(OUTPUT_DIR).split()
+    actual = output_tfe.run(*args)
     assert expected == actual

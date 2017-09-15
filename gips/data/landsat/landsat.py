@@ -985,6 +985,7 @@ class landsatData(Data):
                         )
 
                         imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
+                        verbose_out("writing " + fname, 2)
                         imgout.set_bandname(
                                 self._products[val[0]]['bands'][0]['name'], 1)
                         imgout.add_meta('GIPS_LANDSAT_VERSION', self.version)
