@@ -95,7 +95,6 @@ class daymetAsset(Asset):
     _latency = 0
     _startdate = datetime.date(1980, 1, 1)
     _url = "https://thredds.daac.ornl.gov/thredds/dodsC/ornldaac/1328/tiles/%d/%s_%d"
-    _basename_pat = 'daymet_{}_{}_{}{}.tif'
 
     # daymet assets are named just like products: tile_date_sensor_asset/product.tif
     _asset_template = '{}_{}_{}_{}.tif' # for generating filenames
@@ -182,7 +181,8 @@ class daymetAsset(Asset):
             return (None, None)
         source = cls._assets[asset]['source']
         url = (cls._assets[asset]['url'] + '/%s') % (date.year, tile, date.year, source)
-        bn = cls._basename_pat.format(asset, tile, date.year, date.strftime('%j'))
+        date_str = date.strftime(cls.Repository._datedir)
+        bn = cls._asset_template.format(tile, date_str, cls._sensor, asset)
         return (bn, url)
 
     @classmethod
@@ -214,7 +214,7 @@ class daymetAsset(Asset):
             imgout.SetProjection(PROJ)
             imgout.SetAffine(geo)
             imgout[0].Write(data)
-            imgout.SetMeta(cls.generate_metadata(asset, tile, date, loc))
+            imgout.SetMeta(cls.generate_metadata(asset, tile, date, url))
             os.rename(temp_fp, stage_fp)
             return [stage_fp]
 
