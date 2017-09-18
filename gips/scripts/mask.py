@@ -74,13 +74,12 @@ def main():
                     if p in available_masks:
                         continue
                     meta = ''
-                    # TODO gippy 1.0:  confirm this works from here down
                     img = inv[date].open(p, update=args.original)
                     if args.filemask is not None:
-                        img.add_mask(mask_file[0]) # TODO hmm
+                        img.add_mask(mask_file[0])
                         meta = basename(args.filemask) + ' '
                     for mask in available_masks:
-                        img.add_mask(inv[date].open(mask)[0]) # TODO hmm
+                        img.add_mask(inv[date].open(mask)[0])
                         meta = meta + basename(inv[date][mask]) + ' '
                     if meta != '':
                         if args.original:
