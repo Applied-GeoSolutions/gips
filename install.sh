@@ -33,8 +33,8 @@ source .venv/bin/activate
 
 echo === install a few dependencies via pip ===
 pip install -r dev_requirements.txt
-# gippy has to be done this way because gippy stopped being tracked in pypi
-pip install 'https://github.com/Applied-GeoSolutions/gippy/tarball/v0.3.x#egg=gippy-0.3.8-'`date +%Y%m%d`
+# gippy used to have to be done this way because it wasn't tracked in pypi
+#pip install 'https://github.com/Applied-GeoSolutions/gippy/tarball/v0.3.x#egg=gippy-0.3.8-'`date +%Y%m%d`
 
 echo === install GIPS itself ===
 # TODO --process-dependency-links is deprecated

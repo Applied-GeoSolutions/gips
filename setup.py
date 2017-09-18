@@ -57,7 +57,7 @@ setup(
     install_requires=[
         'Py6S>=1.7.0',
         'shapely',
-        'gippy>=0.3.8',
+        'gippy>=1.0',
         'homura==0.1.3',
         'python-dateutil',
         'pydap==3.2',
