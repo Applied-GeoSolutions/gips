@@ -39,6 +39,7 @@ import shutil
 import tarfile
 import re
 import glob
+import copy
 
 import numpy
 import netCDF4
@@ -48,6 +49,7 @@ from gips.utils import List2File, verbose_out
 from gips import utils
 from gips.data.merra import merraData
 from gips.data.aod import aodData
+from gips.data.core import Data
 from gips.inventory import orm
 
 # since Py6S pulls in matplotlib, we need to shut down all that gui business
@@ -382,8 +384,99 @@ class MODTRAN():
     fout.close()
     """
 
+_aco_prod_templs = {
+    'rhow': {
+        'description': 'Water-Leaving Radiance-Reflectance',
+        'acolite-product': 'rhow_vnir',
+        'acolite-key': 'RHOW',
+        'gain': 0.0001,
+        'offset': 0.,
+        'dtype': 'int16',
+        'toa': True,
+        'bands': [{'name': bn, 'units': Data._unitless} for bn in (
+                    '444nm', '497nm', '560nm', '664nm', '704nm',
+                    '740nm', '782nm', '835nm', '865nm', '1614nm', '2202nm')]
+    },
+    # Not sure what the issue is with this product, but it doesn't seem to
+    # work as expected (multiband vis+nir product)
+    # 'rhoam': {
+    #     'description': 'Multi-Scattering Aerosol Reflectance',
+    #     'acolite-product': 'rhoam_vnir',
+    #     'acolite-key': 'RHOAM',
+    #     'dtype': 'int16',
+    #     'toa': True,
+    # },
+    'oc2chl': {
+        'description': 'Blue-Green Ratio Chlorophyll Algorithm using bands 483 & 561',
+        'acolite-product': 'CHL_OC2',
+        'acolite-key': 'CHL_OC2',
+        'gain': 0.0125,
+        'offset': 250.,
+        'dtype': 'int16',
+        'toa': True,
+        'bands': [{'name': 'oc2chl', 'units': Data._unitless}],
+    },
+    'oc3chl': {
+        'description': 'Blue-Green Ratio Chlorophyll Algorithm using bands 443, 483, & 561',
+        'acolite-product': 'CHL_OC3',
+        'acolite-key': 'CHL_OC3',
+        'gain': 0.0125,
+        'offset': 250.,
+        'dtype': 'int16',
+        'toa': True,
+        'bands': [{'name': 'oc3chl', 'units': Data._unitless}],
+    },
+    'fai': {
+        'description': 'Floating Algae Index',
+        'acolite-product': 'FAI',
+        'acolite-key': 'FAI',
+        'dtype': 'float32',
+        'toa': True,
+        'bands': [{'name': 'fai', 'units': Data._unitless}],
+    },
+    'acoflags': {
+        'description': '0 = water 1 = no data 2 = land',
+        'acolite-product': 'FLAGS',
+        'acolite-key': 'FLAGS',
+        'dtype': 'uint8',
+        'toa': True,
+        'bands': [{'name': 'acoflags', 'units': Data._unitless}],
+    },
+    'spm655': {
+        'description': 'Suspended Sediment Concentration 655nm',
+        'acolite-product': 'SPM_NECHAD_655',
+        'acolite-key': 'SPM_NECHAD_655',
+        'offset': 50.,
+        'gain': 0.005,
+        'dtype': 'int16',
+        'toa': True,
+        'bands': [{'name': 'spm655', 'units': 'unknown'}],
+    },
+    'turbidity': {
+        'description': 'Blended Turbidity',
+        'acolite-product': 'T_DOGLIOTTI',
+        'acolite-key': 'T_DOGLIOTTI',
+        'offset': 50.,
+        'gain': 0.005,
+        'dtype': 'int16',
+        'toa': True,
+        'bands': [{'name': 'turbidity', 'units': Data._unitless}],
+    },
+}
 
-def process_acolite(asset, aco_proc_dir, products):
+def add_acolite_product_dicts(_products, *assets):
+    """Add the acolite product dicts to the given Data._products.
+
+    'assets' is different for each driver, so pass it in."""
+    # make copies just in case anything is modified
+    aco_prods = copy.deepcopy(_aco_prod_templs)
+    for inner in aco_prods.values():
+        inner['assets'] = list(assets) # just in case, don't re-use the list
+    _products.update(aco_prods)
+
+def process_acolite(asset, aco_proc_dir, products,
+                    model_layer_re=r'.*\.((jp2)|(tif)|(TIF))$',
+                    extracted_asset_glob=''):
     """Generate acolite products from the given asset.
 
     Args:
@@ -392,6 +485,8 @@ def process_acolite(asset, aco_proc_dir, products):
             suggested, and the caller is responsible for disposing of it
         products:  dict specifying how to generate acolite products;
             format docstring is a TODO.
+        model_layer_re:  A regex for a pathname to a layer image in
+            the asset; it is used as a sort of template for the ouptut image.
 
     Returns:  A mapping of product type strings to generated filenames
         in the tiles/ directory; Data.AddFile() ready.
@@ -420,18 +515,21 @@ def process_acolite(asset, aco_proc_dir, products):
     # EXTRACT ASSET
     verbose_out('acolite processing:  Extracting {} to {}'.format(
                 asset.filename, aco_proc_dir), 2)
-    tar = tarfile.open(asset.filename)
-    tar.extractall(aco_proc_dir)
+    asset.extract(path=aco_proc_dir)
     verbose_out('acolite processing:  Finished extracting {} to {}'.format(
                 asset.filename, aco_proc_dir), 2)
 
     # STASH PROJECTION AND GEOTRANSFORM (in a GeoImage)
-    exts = re.compile(r'.*\.((jp2)|(tif)|(TIF))$')
-    tif = filter(
-        lambda de: exts.match(de),
-        os.listdir(aco_proc_dir)
-    )[0]
-    tmp = gippy.GeoImage(os.path.join(aco_proc_dir, tif))
+    layer_finder = re.compile(model_layer_re)
+    tmp = None
+    for d, _, files in os.walk(aco_proc_dir):
+        for f in files:
+            fp = os.path.join(d, f)
+            if layer_finder.match(fp):
+                tmp = gippy.GeoImage(fp)
+    verbose_out('acolite processing:  model layer located: {}'.format(
+            tmp.Filename()), 3)
+    assert tmp, "No matching raster for {}".format(model_layer_re)
 
     # PROCESS SETTINGS TEMPLATE FOR SPECIFIED PRODUCTS
     settings_path = os.path.join(aco_proc_dir, 'settings.cfg')
@@ -461,6 +559,13 @@ def process_acolite(asset, aco_proc_dir, products):
                 )
     ACOLITEPATHS['ACOLITE_SETTINGS'] = settings_path
 
+    eag_fp = os.path.join(aco_proc_dir, extracted_asset_glob)
+    eag_rv = glob.glob(eag_fp)
+    if len(eag_rv) != 1:
+        err_msg = "Expected exactly one asset glob for {}, found {}"
+        raise IOError(err_msg.format(eag_fp, eag_rv))
+    ea_fp = eag_rv[0]
+
     # PROCESS VIA ACOLITE IDL CALL
     cmd = (
         ('cd {ACO_DIR} ; '
@@ -470,8 +575,8 @@ def process_acolite(asset, aco_proc_dir, products):
          'run=1 '
          'output={OUTPUT} image={IMAGES}')
             .format(
-            OUTPUT=aco_proc_dir,
-            IMAGES=aco_proc_dir,
+            OUTPUT=aco_proc_dir, # acolite seems to ignore this argument
+            IMAGES=ea_fp,        # <-- and put the netcdf file in here
             **ACOLITEPATHS
         )
     )
@@ -480,12 +585,15 @@ def process_acolite(asset, aco_proc_dir, products):
     if status != 0:
         raise Exception("Got exit status {} from `{}`".format(status, cmd),
                         output)
-    # EXTRACT IMAGES FROM NETCDF AND
-    # COMBINE MULTI-IMAGE PRODUCTS INTO
+    verbose_out('acolite processing:  ====== begin acolite output ======', 4)
+    verbose_out(output, 4)
+    verbose_out('acolite processing:  ====== end acolite output ======', 4)
+
+    # EXTRACT IMAGES FROM NETCDF AND COMBINE MULTI-IMAGE PRODUCTS INTO
     # A MULTI-BAND TIF, ADD METADATA, and MOVE INTO TILES
     verbose_out('acolite processing:  acolite completed;'
                 ' starting conversion from netcdf into gips products', 2)
-    aco_nc_file = glob.glob(os.path.join(aco_proc_dir, '*_L2.nc'))[0]
+    aco_nc_file = glob.glob(os.path.join(ea_fp, '*_L2.nc'))[0]
     dsroot = netCDF4.Dataset(aco_nc_file)
 
     prodout = dict()
@@ -505,13 +613,12 @@ def process_acolite(asset, aco_proc_dir, products):
         imgout = gippy.GeoImage.create_from(tmp, ofname, len(bands), dtype)
         # # TODO: add units to products dictionary and use here.
         # imgout.SetUnits(products[key]['units'])
-        pmeta = dict()
-        pmeta.update(imeta)
         pmeta = {
             mdi: products[key][mdi]
             for mdi in ['acolite-key', 'description']
             }
         pmeta['source_asset'] = os.path.basename(asset.filename)
+        pmeta.update(imeta)
         imgout.add_meta(pmeta)
         for i, b in enumerate(bands):
             imgout.set_bandname(str(b), i + 1)

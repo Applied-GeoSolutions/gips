@@ -121,17 +121,15 @@ t_process = {
     ]
 }
 
-# hashes correspond to all-cloud (hence masked) imagery
-# to be updated with gh-issue #218
 t_process_acolite = {
     'created': {
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_acoflags.tif': -1859740248,
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_fai.tif': -1038257960,
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_oc2chl.tif': 1758567336,
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_oc3chl.tif': -42455946,
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_rhow.tif': -2063068590,
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_spm655.tif': 319134655,
-        'landsat/tiles/012030/2017213/012030_2017213_LC8_turbidity.tif': -857239291,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_acoflags.tif': -514981863,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_fai.tif': -1820016301,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_oc2chl.tif': -794776169,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_oc3chl.tif': 337875725,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_rhow.tif': 1044772611,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_spm655.tif': 1437263134,
+        'landsat/tiles/012030/2017213/012030_2017213_LC8_turbidity.tif': -1347918033,
     },
     'updated': {
         'landsat/stage': None,

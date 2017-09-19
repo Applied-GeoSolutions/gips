@@ -629,108 +629,9 @@ class landsatData(Data):
             'latency': 1,
             'bands': unitless_bands('landmask'),
         },
-        # ACOLITE products
-        # single-band unitless mostly index or ratio products, per:
-        # https://odnature.naturalsciences.be/downloads/remsem/acolite/
-        #       ACOLITE_processing_options_20170718.0.pdf
-        'rhow': {
-            'assets': ['DN', 'C1'],
-            'description': 'Water-Leaving Radiance-Reflectance',
-            'acolite-product': 'rhow_vnir',
-            'acolite-key': 'RHOW',
-            'gain': 0.0001,
-            'offset': 0.,
-            'dtype': 'int16',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': unitless_bands('rhow'),
-        },
-        # Not sure what the issue is with this product, but it doesn't seem to
-        # work as expected (multiband vis+nir product)
-        # 'rhoam': {
-        #     'assets': ['DN'],
-        #     'description': 'Multi-Scattering Aerosol Reflectance',
-        #     'acolite-product': 'rhoam_vnir',
-        #     'acolite-key': 'RHOAM',
-        #     'dtype': 'int16',
-        #     'toa': True,
-        # },
-        'oc2chl': {
-            'assets': ['DN', 'C1'],
-            'description': 'Blue-Green Ratio Chlorophyll Algorithm using bands 483 & 561',
-            'acolite-product': 'CHL_OC2',
-            'acolite-key': 'CHL_OC2',
-            'gain': 0.0125,
-            'offset': 250.,
-            'dtype': 'int16',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': unitless_bands('oc2chl'),
-        },
-        'oc3chl': {
-            'assets': ['DN', 'C1'],
-            'description': 'Blue-Green Ratio Chlorophyll Algorithm using bands 443, 483, & 561',
-            'acolite-product': 'CHL_OC3',
-            'acolite-key': 'CHL_OC3',
-            'gain': 0.0125,
-            'offset': 250.,
-            'dtype': 'int16',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': unitless_bands('oc3chl'),
-        },
-        'fai': {
-            'assets': ['DN', 'C1'],
-            'description': 'Floating Algae Index',
-            'acolite-product': 'FAI',
-            'acolite-key': 'FAI',
-            'dtype': 'float32',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': unitless_bands('fai'),
-        },
-        'acoflags': {
-            'assets': ['DN', 'C1'],
-            'description': '0 = water 1 = no data 2 = land',
-            'acolite-product': 'FLAGS',
-            'acolite-key': 'FLAGS',
-            'dtype': 'uint8',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': unitless_bands('acoflags'),
-        },
-        'spm655': {
-            'assets': ['DN', 'C1'],
-            'description': 'Suspended Sediment Concentration 655nm',
-            'acolite-product': 'SPM_NECHAD_655',
-            'acolite-key': 'SPM_NECHAD_655',
-            'offset': 50.,
-            'gain': 0.005,
-            'dtype': 'int16',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': [{'name': 'spm655', 'units': 'g/m^3'}],
-        },
-        'turbidity': {
-            'assets': ['DN', 'C1'],
-            'description': 'Blended Turbidity',
-            'acolite-product': 'T_DOGLIOTTI',
-            'acolite-key': 'T_DOGLIOTTI',
-            'offset': 50.,
-            'gain': 0.005,
-            'dtype': 'int16',
-            'toa': True,
-            'startdate': _lt5_startdate,
-            'latency': 1,
-            'bands': unitless_bands('turbidity'),
-        },
     }
+
+    gips.atmosphere.add_acolite_product_dicts(_products, 'DN', 'C1')
 
     for product, product_info in _products.iteritems():
         product_info['startdate'] = min(
@@ -1209,7 +1110,7 @@ class landsatData(Data):
                         amd[p].update(self._products[p])
                         amd[p].pop('assets')
                     prodout = gips.atmosphere.process_acolite(
-                            self.assets[asset], asset, aco_proc_dir, amd)
+                            self.assets[asset], aco_proc_dir, amd)
                     endtime = datetime.now()
                     for k, fn in prodout.items():
                         self.AddFile(sensor, k, fn)

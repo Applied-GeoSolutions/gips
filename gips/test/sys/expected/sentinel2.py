@@ -175,3 +175,19 @@ t_stats = {
     },
     'ignored': _extraction_noise,
 }
+
+t_process_acolite = {
+    'compare_stderr': False,
+    'updated': {
+        'sentinel2/stage': None,
+        'sentinel2/tiles/19TCH/2017010': None,
+    },
+    'created': {
+        # TODO
+    },
+    'ignored': _extraction_noise + [
+        'gips-inv-db.sqlite3',
+        'sentinel2/tiles/19TCH/2017010/S2A_MSIL1C_20170110T153611_N0204_R111_T19TCH_20170110T154029.zip',
+        'sentinel2/tiles/19TCH/2017010/S2A_MSIL1C_20170110T153611_N0204_R111_T19TCH_20170110T154029.zip.index',
+    ],
+}

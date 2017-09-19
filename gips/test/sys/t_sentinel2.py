@@ -51,10 +51,6 @@ def t_process(setup_fixture, repo_env, expected):
     """Test `gips_process`, confirming products are created."""
     process_actual = repo_env.run('gips_process', *PROD_ARGS)
     inventory_actual = envoy.run('gips_inventory ' + ' '.join(STD_ARGS))
-    # just to make updating the tests less painful
-    if pytest.config.getoption("--expectation-format"):
-        print ('standard output (expectation format, post-processing gips_inventory): """' +
-               re.sub('\\\\n', '\n', repr(inventory_actual.std_out))[2:-1] + '"""')
     assert (expected == process_actual
             and expected._inv_stdout == inventory_actual.std_out)
 
@@ -84,4 +80,14 @@ def t_stats(setup_fixture, clean_repo_env, output_tfe, expected):
     actual = gtfe.run('gips_stats', OUTPUT_DIR)
 
     # check for correct stats content
+    assert expected == actual
+
+@slow
+@acolite
+@pytest.mark.skip(reason="Overflows in zlib.crc32")
+def t_process_acolite(setup_fixture, repo_env, expected):
+    """Generate acolite products."""
+    aco_args = list(STD_ARGS) + \
+               '-p rhow fai oc2chl oc3chl spm655 turbidity acoflags'.split()
+    actual = repo_env.run('gips_process', *aco_args)
     assert expected == actual

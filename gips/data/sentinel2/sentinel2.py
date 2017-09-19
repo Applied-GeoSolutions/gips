@@ -44,6 +44,7 @@ from gips.data.core import Repository, Asset, Data
 from gips import utils
 from gips import atmosphere
 
+_asset_type = 'L1C' # only one for the whole driver for now
 
 class sentinel2Repository(Repository):
     name = 'Sentinel2'
@@ -607,11 +608,11 @@ class sentinel2Data(Data):
     version = '0.1.0'
     Asset = sentinel2Asset
 
-    _asset_type = 'L1C' # only one for the whole driver for now
-
     _productgroups = {
         'Index': ['ndvi', 'evi', 'lswi', 'ndsi', 'bi', 'satvi', 'msavi2', 'vari', 'brgt',
-                  'ndti', 'crc', 'crcm', 'isti', 'sti'] # <-- tillage indices
+                  'ndti', 'crc', 'crcm', 'isti', 'sti'], # <-- tillage indices
+        'ACOLITE': ['rhow', 'oc2chl', 'oc3chl', 'fai',
+                    'spm655', 'turbidity', 'acoflags'],
     }
 
     _products = {
@@ -639,7 +640,7 @@ class sentinel2Data(Data):
     # add index products to _products
     _products.update(
         (p, {'description': d,
-             'assets': ['L1C'],
+             'assets': [_asset_type],
              'bands': [{'name': p, 'units': Data._unitless}]}
         ) for p, d in [
             ('ndvi',   'Normalized Difference Vegetation Index'),
@@ -663,6 +664,8 @@ class sentinel2Data(Data):
             ('sti',    'Standard Tillage Index'),
         ]
     )
+
+    atmosphere.add_acolite_product_dicts(_products, _asset_type)
 
     _product_dependencies = {
         'indices':      'ref',
@@ -704,10 +707,10 @@ class sentinel2Data(Data):
         return work
 
     def current_asset(self):
-        return self.assets[self._asset_type]
+        return self.assets[_asset_type]
 
     def current_sensor(self):
-        return self.sensors[self._asset_type]
+        return self.sensors[_asset_type]
 
 
     def load_image(self, product):
@@ -912,6 +915,31 @@ class sentinel2Data(Data):
 
         self._time_report(' -> %s: processed %s' % (self.basename, indices))
 
+    def process_acolite(self, aco_prods):
+        a_obj, sensor = self.current_asset(), self.current_sensor()
+        self._time_report("Starting acolite processing") # for {}".format(x.keys()))
+        # let acolite use a subdirectory in this run's tempdir:
+        aco_tmp_dir = self.generate_temp_path('acolite')
+        os.mkdir(aco_tmp_dir)
+        acolite_product_spec = {
+            # TODO refactor 'meta' into an argument; it's pop()'ed out anyway
+            'meta': self.meta_dict(),
+        }
+        for p in aco_prods:
+            # TODO use tempdirs to match current gips practices
+            fn = os.path.join(self.path, self.product_filename(sensor, p))
+            aps_p = acolite_product_spec[p] = {'fname': fn}
+            aps_p.update(self._products[p])
+            aps_p.pop('assets')
+
+        prodout = atmosphere.process_acolite(
+                a_obj, aco_tmp_dir, acolite_product_spec,
+                a_obj.style_res['raster-re'].format(tileid=a_obj._tile_re),
+                '*.SAFE')
+
+        [self.AddFile(sensor, pt, fn) for pt, fn in prodout.items()]
+        self._time_report(' -> {}: processed {}'.format(
+                self.basename + '_' + sensor, prodout.keys()))
 
     def ref_geoimage(self, asset_type, sensor):
         """Generate a surface reflectance image.
@@ -1088,6 +1116,8 @@ class sentinel2Data(Data):
 
         surf_indices  = {k: v for (k, v) in indices.items() if 'toa' not in v}
         self.process_indices('surf', sensor, surf_indices)
+
+        self.process_acolite(products.groups()['ACOLITE'])
 
         self._product_images = {} # hint for gc; may be needed due to C++/swig weirdness
         self._time_report('Processing complete for this spatial-temporal unit')
