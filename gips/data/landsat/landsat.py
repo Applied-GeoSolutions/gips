@@ -1253,10 +1253,7 @@ class landsatData(Data):
         return meta
 
     def _readqa(self):
-        """Returns a numpy array of the first landsat asset in self.assets.
-
-        It is cast to uint16 before being returned, because gippy insists on
-        float64, which is quite wrong for a grid of quality flags."""
+        """Returns a numpy array of the first landsat asset in self.assets."""
         asset = self.assets.keys()[0]
 
         # make sure metadata is loaded
@@ -1269,7 +1266,8 @@ class landsatData(Data):
             # Use tar.gz directly using GDAL's virtual filesystem
             qadatafile = os.path.join('/vsitar/' + self.assets[asset].filename,
                                       self.metadata['qafilename'])
-        npqa = gippy.GeoImage(qadatafile).read().astype('uint16')
+        # read() does automatic conversion to float64; read_raw() doesn't
+        npqa = gippy.GeoImage(qadatafile)[0].read_raw()
         return npqa
 
     def _readraw(self):
