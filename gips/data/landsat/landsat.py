@@ -671,7 +671,7 @@ class landsatData(Data):
     @Data.proc_temp_dir_manager
     def process(self, products=None, overwrite=False, **kwargs):
         """ Make sure all products have been processed """
-        verbose_out('starting landsat processing!', 3, 'stderr')
+        verbose_out('starting landsat processing!', 3)
         products = super(landsatData, self).process(products, overwrite, **kwargs)
         if len(products) == 0:
             return
@@ -1121,7 +1121,7 @@ class landsatData(Data):
                     )
                 shutil.rmtree(aco_proc_dir)
                 ## end ACOLITE
-        verbose_out('finished landsat processing!', 3, 'stderr')
+        verbose_out('finished landsat processing!', 3)
 
     def filter(self, pclouds=100, sensors=None, **kwargs):
         """Check if Data object passes filter.

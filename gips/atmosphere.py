@@ -528,7 +528,7 @@ def process_acolite(asset, aco_proc_dir, products,
             if layer_finder.match(fp):
                 tmp = gippy.GeoImage(fp)
     verbose_out('acolite processing:  model layer located: {}'.format(
-            tmp.Filename()), 3)
+            tmp.filename()), 3)
     assert tmp, "No matching raster for {}".format(model_layer_re)
 
     # PROCESS SETTINGS TEMPLATE FOR SPECIFIED PRODUCTS
