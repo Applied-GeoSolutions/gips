@@ -865,7 +865,7 @@ class landsatData(Data):
                     cfmask[cfmask == 2] = 0
 
                     verbose_out("writing " + fname, 2)
-                    imgout = gippy.GeoImage(img, fname, 1, 'byte')
+                    imgout = gippy.GeoImage.create_from(img, fname, 1, 'byte')
                     imgout.set_bandname('Land mask', 1)
                     imgout[0].write(cfmask)
 
@@ -968,7 +968,6 @@ class landsatData(Data):
                             """Return an array with the ith bit extracted from each cell."""
                             return (np_array >> i) & 0b1
 
-                        # here down is dev version; needs update for gippy 1.0
                         np_cloudmask = numpy.logical_not(
                             get_bit(npqa, 4) &
                             get_bit(npqa, 6) |

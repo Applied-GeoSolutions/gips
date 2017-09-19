@@ -147,7 +147,7 @@ def sliced_read(img, *bands):
 class weldData(Data):
     """ A tile of data (all assets and products) """
     name = 'WELD'
-    version = '0.1.0'
+    version = '1.0'
     Asset = weldAsset
     _productgroups = {
         "indices": ['ndsi', 'ndvi', 'brgt'],
@@ -196,7 +196,7 @@ class weldData(Data):
 
             meta = self.meta_dict()
             meta['AVAILABLE_ASSETS'] = ''
-            meta['VERSION'] = '1.0'
+            meta['VERSION'] = self.version
 
             # Check for asset availability
             needed_assets = self._products[val[0]]['assets']
