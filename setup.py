@@ -57,7 +57,7 @@ setup(
     install_requires=[
         'Py6S>=1.7.0',
         'shapely',
-        'gippy>=1.0',
+        'gippy>=1.0.1b2<2.0',
         'homura==0.1.3',
         'python-dateutil',
         'pydap==3.2',
@@ -70,6 +70,7 @@ setup(
     dependency_links=[
         'https://bitbucket.org/chchrsc/rios/downloads/rios-1.4.3.zip#egg=rios-1.4.3',
         'https://bitbucket.org/chchrsc/python-fmask/downloads/python-fmask-0.4.5.zip#egg=python-fmask-0.4.5',
+        'https://github.com/Applied-GeoSolutions/gippy/archive/v1.0.1b2.tar.gz#egg=gippy-1.0.1b2',
     ],
     entry_points={'console_scripts': console_scripts},
     zip_safe=False,
