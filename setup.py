@@ -64,6 +64,7 @@ setup(
         ],
     },
     install_requires=[
+        'numpy',
         'six>=1.9.0',
         # because requests is a diva and won't leave its trailer otherwise:
         'urllib3[secure]<1.24',
