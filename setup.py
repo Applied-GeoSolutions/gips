@@ -37,13 +37,10 @@ __version__ = imp.load_source('gips.version', 'gips/version.py').__version__
 # collect console scripts to install
 console_scripts = []
 for f in glob.glob('gips/scripts/*.py'):
-    try:
-        name = os.path.splitext(os.path.basename(f))[0]
-        if name not in ['__init__', 'core']:
-            script = 'gips_%s = gips.scripts.%s:main' % (name, name.lower())
-            console_scripts.append(script)
-    except:
-        print(traceback.format_exc())
+    name = os.path.splitext(os.path.basename(f))[0]
+    if name not in ['__init__', 'core']:
+        script = 'gips_%s = gips.scripts.%s:main' % (name, name.lower())
+        console_scripts.append(script)
 
 
 setup(
@@ -64,7 +61,7 @@ setup(
         ],
     },
     install_requires=[
-        'numpy',
+        # better to install here but it seems to cause apt conflicts:  'GDAL', 'numpy',
         'six>=1.9.0',
         # because requests is a diva and won't leave its trailer otherwise:
         'urllib3[secure]<1.24',

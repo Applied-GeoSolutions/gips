@@ -14,9 +14,11 @@ apt-get update -y
 # TODO installing system pip means pip can't upgrade itself without breaking
 # TODO not clear if any of these are necessary; they were part of the gippy 0 + py2 installer:
 #sudo apt-get install virtualenv libboost-all-dev libfreetype6-dev libgnutls-dev \
-#   libatlas-base-dev python-numpy python-scipy python-gdal swig2.0
+#   libatlas-base-dev python-numpy python-scipy swig2.0
+# would be better to install python3-gdal via pypi package GDAL, but it causes conflicts
 apt-get install -y \
-    gdal-bin libgdal-dev python-dev python3-dev python3-pip curl wget gfortran libgnutls28-dev
+    gdal-bin libgdal-dev python-dev python3-dev python3-gdal python3-pip \
+    curl wget gfortran libgnutls28-dev
 
 # more funny deps that are difficult to install with setuptools:
 pip3 install -U numpy # gippy has some kind of problem otherwise
@@ -24,6 +26,11 @@ c_url=https://bitbucket.org/chchrsc
 pip3 install -U "${c_url}/rios/downloads/rios-1.4.3.zip#egg=rios-1.4.3"
 pip3 install -U "${c_url}/python-fmask/downloads/python-fmask-0.5.0.zip#egg=python-fmask-0.5.0"
 
+# setuptools has no way to filter out a specific python file so:
+if [ -e gips/settings.py ]; then
+    echo "gips/settings.py exists; shouldn't continue" >/dev/stderr
+    exit 1
+fi
 # system install, not venv nor developer install:
 python3 setup.py install
 
