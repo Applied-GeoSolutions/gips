@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+# This is a system install script for gips, known to work for Ubuntu 18.04.
+# Call it with a root path to your gips data repository root and email
+# address:
+#
+#   ./install.sh /archive user@example.com
+#
+# It installs system packages via apt and pip3 so should be run as root/sudo.
+
+
 die () {
     echo >&2 "$@"
     exit 1
