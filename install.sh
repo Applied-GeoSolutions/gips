@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+die () {
+    echo >&2 "$@"
+    exit 1
+}
+
+[ "$#" -eq 2 ] || die "Usage:  $0 REPO_ROOT EMAIL"
+# setuptools has no way to filter out a specific python file so:
+[ -e gips/settings.py ] && die "gips/settings.py exists; shouldn't continue"
+
 set -e
 set -v
 
@@ -20,20 +29,17 @@ apt-get install -y \
     gdal-bin libgdal-dev python-dev python3-dev python3-gdal python3-pip \
     curl wget gfortran libgnutls28-dev
 
+# TODO optionally install in a virtualenv:
+# virtualenv --system-site-packages venv; source venv/bin/activate
+
 # more funny deps that are difficult to install with setuptools:
 pip3 install -U numpy # gippy has some kind of problem otherwise
 c_url=https://bitbucket.org/chchrsc
 pip3 install -U "${c_url}/rios/downloads/rios-1.4.3.zip#egg=rios-1.4.3"
 pip3 install -U "${c_url}/python-fmask/downloads/python-fmask-0.5.0.zip#egg=python-fmask-0.5.0"
 
-# setuptools has no way to filter out a specific python file so:
-if [ -e gips/settings.py ]; then
-    echo "gips/settings.py exists; shouldn't continue" >/dev/stderr
-    exit 1
-fi
 # system install, not venv nor developer install:
 python3 setup.py install
-
 
 # TODO if this is extended to support developer and/or venv installs:
 # pip3 install -r dev_requirements.txt # if you wish to run the test suite; CF docker/
@@ -44,13 +50,7 @@ python3 setup.py install
 #pip3 install --process-dependency-links -e .
 
 # TODO used to do config but it's not clear that the email option is needed anymore:
-#gips_config env -r $ARCHIVEDIR -e $EMAIL # eg -r /archive -e nobody@example.com
-#gips_config user # TODO does this set up ~/.gips/ ?
+gips_config env --repos "$1" --email "$2"
 
-# TODO make an option
-# virtualenv --system-site-packages venv
-# source venv/bin/activate
-
-# TODO UX?
-#echo "Now edit settings.py for things like EARTHDATA password"
-#echo "gips_project modis --fetch -s gips/test/NHseacoast.shp -d 2017-5-25 -v5 -p ndvi8"
+# TODO add advice for EARTHDATA_USER & EARTHDATA_PASS?
+# To establish user-specific settings, run `gips_config user` then edit ~/.gips/'
