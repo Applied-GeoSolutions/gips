@@ -5,9 +5,9 @@ FROM ubuntu:18.04
 COPY . /gips
 WORKDIR /gips
 
-# TODO not clear if gfortran is needed when we're not compiling sixs after all
-RUN cd /gips && ./install.sh /archive nobody@example.com
+RUN cd /gips && ./install-sys-deps.sh && ./install-py-deps.sh
+RUN cd /gips && python3 setup.py develop && \
+    gips_config env --repos /archive --email nobody@example.com
 
 RUN apt-get -y autoremove \
     && apt-get -y autoclean
-

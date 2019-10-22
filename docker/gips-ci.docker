@@ -19,7 +19,6 @@ COPY docker/pytest-ini /gips/pytest.ini
 # doesn't seem to be needed for CI test suite:
 #RUN apt-get update && apt-get -y install libcurl4-gnutls-dev
 
-RUN pip3 install -U pip
 RUN pip3 install -r dev_requirements.txt
 
 # technically not needed for CI test suite (also decryption doesn't work at the moment)

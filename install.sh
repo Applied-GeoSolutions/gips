@@ -22,7 +22,7 @@ set -e
 set -v
 
 source install-sys-deps.sh # mostly through apt-get install
-source install-py-deps.sh # mostly through apt-get install
+source install-py-deps.sh
 
 # TODO optionally install in a virtualenv:
 # virtualenv --system-site-packages venv; source venv/bin/activate
@@ -37,7 +37,6 @@ python3 setup.py install
 # not sure if option still supported, and not sure if needed at all:
 #                   vvvvvvvvvvvvvvvvvvv
 #pip3 install --process-dependency-links -e .
-
 
 ### configuration (varies by install type?  I guess?)
 # TODO used to do config but it's not clear that the email option is needed anymore:
