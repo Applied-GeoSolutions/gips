@@ -22,21 +22,10 @@ set -e
 set -v
 
 source install-sys-deps.sh # mostly through apt-get install
+source install-py-deps.sh # mostly through apt-get install
 
 # TODO optionally install in a virtualenv:
 # virtualenv --system-site-packages venv; source venv/bin/activate
-
-
-### python deps (venv-able)
-# Right now dependency_links is being removed, probably, from setuptools. The
-# "foo @ url" syntax isn't documented and doesn't seem to work. So, have to
-# install things directly:
-# more funny deps that are difficult to install with setuptools:
-pip3 install -U numpy # gippy has some kind of problem otherwise
-c_url=https://bitbucket.org/chchrsc
-pip3 install -U "${c_url}/rios/downloads/rios-1.4.3.zip#egg=rios-1.4.3"
-pip3 install -U "${c_url}/python-fmask/downloads/python-fmask-0.5.0.zip#egg=python-fmask-0.5.0"
-
 
 ### gips install (venv-able)
 # system install, not venv nor developer install:

@@ -43,8 +43,7 @@ RUN pip3 install -r dev_requirements.txt
 # note settings.py is removed in case it exists (it shouldn't) then
 # regenerated with gips_config, then edited.  GIPS_ORM is set false for hls;
 # once hls is compatible with the ORM, that line can be removed.
-RUN rm -f /gips/gips/settings.py \
-    && gips_config env -r /archive -e nobody@example.com \
-    && echo 'GIPS_ORM = False' >> /gips/gips/settings.py
+# TODO  need new path --------------vvvvvvvvvvv
+RUN echo 'GIPS_ORM = False' >> /gips/gips/settings.py
 
 WORKDIR /gips

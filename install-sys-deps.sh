@@ -19,5 +19,14 @@ apt-get update -y
 #   libatlas-base-dev python-numpy python-scipy swig2.0
 # would be better to install python3-gdal via pypi package GDAL, but it causes conflicts
 apt-get install -y \
-    gdal-bin libgdal-dev python-dev python3-dev python3-gdal python3-pip \
+    gdal-bin libgdal-dev python-dev python3-dev python3-gdal \
     curl wget gfortran libgnutls28-dev
+
+# can't presume user wants ubuntu's python3-pip because it's common practice to install
+# it themselves, so need to check first
+if command -v pip3 &>/dev/null; then
+    echo 'pip3 found in PATH; not installing'
+else
+    echo 'pip3 not found in PATH; installing:'
+    apt-get install -y python3-pip
+fi
