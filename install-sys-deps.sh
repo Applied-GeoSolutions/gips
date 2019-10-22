@@ -19,9 +19,12 @@ apt-get update -y
 #   libatlas-base-dev python-numpy python-scipy swig2.0
 #   # also this came from one of the docker files, purpose uncertain:  libcurl4-gnutls-dev
 # would be better to install python3-gdal via pypi package GDAL, but it causes conflicts
+# some tools (such as gdal_polygonize.py) are only included with python-gdal
+#   (that is, python 2), and not python3-gdal; it's not known if python 3
+#   versions of these tools exist.
 # TODO gfortran is only needed for sixs; remove it to the sixs install script
 apt-get install -y \
-    gdal-bin libgdal-dev python-dev python3-dev python3-gdal \
+    gdal-bin libgdal-dev python-dev python3-dev python3-gdal python-gdal \
     curl wget gfortran libgnutls28-dev
 
 # can't presume user wants ubuntu's python3-pip because it's common practice to install
