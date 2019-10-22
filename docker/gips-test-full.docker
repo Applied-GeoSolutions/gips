@@ -15,7 +15,11 @@ RUN mkdir /tmp/sixs && \
     mv sixsV1.1 /usr/local/bin/sixs && \
     rm -rf /tmp/sixs
 
-# way to do it if you have the binary handy:
+### installing sixs & ortho binaries directly:
 #run apt-get install -y libgfortran3
 #copy sixs /usr/local/bin/sixs
 #run chmod +x /usr/local/bin/sixs
+
+# for coreg product testing (in landsat & maybe s2):
+#COPY ortho /usr/local/bin/ortho
+#run chmod +x /usr/local/bin/ortho
