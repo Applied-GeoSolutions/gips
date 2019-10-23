@@ -12,8 +12,6 @@ RUN pip3 install -r dev_requirements.txt
 # once hls is compatible with the gips ORM, this line can be removed:
 RUN echo 'GIPS_ORM = False' >> /gips/gips/settings.py
 
-WORKDIR /gips
-
 ### fetch tests:
 # Previously, the CI test suite did fetch tests and needed auth creds, and also
 # used to politely set a user that would be convenient for developers (so you

@@ -7,15 +7,54 @@ current.
 
 ## Installation
 
-Currently it's easiest to build & run in a docker container; see
-`docker/README.md`.
+gips is known to work only on Ubuntu 18.04.
 
-You can also attempt to use `install.sh` for conventional installs; it is not
-necessarily current.  It only officially supports recent versions of Ubuntu.
-It will use `sudo` to install system packages, and may ask for authentication
-accordingly.  It runs apt-get, which may prompt you for confirmation of its
-actions.  Finally, the script will show you how to set GIPS system settings
-with `gips_config`.
+You can build a docker container for gips, or install to a python virtual
+environment, or install gips natively on your operating system.  You can also
+use the install scripts piecemeal for your own needs.
+
+### Native Installs
+
+For native installs, use the install script, which will install ubuntu
+packages, pip packages, and gips itself, then configure gips for use. Read this
+short script before you run it:
+
+```
+$ sudo ./install.sh /path/to/gips/archive/dir nobody@example.com
+```
+
+Optionally, install [6S](http://6s.ltdri.org/) if you wish to use gips to
+produce atmospherically-corrected products:
+
+```
+$ sudo ./install-sixs.sh
+```
+
+### Container Builds & Test Suite
+
+See `docker/README.md`.  Also describes how to run the test suite.
+
+### Python Virtual Environments & Piecemeal Installs
+
+`install.sh` is a short script; its lines can be called separately if needed:
+
+* `install-sys-deps.sh` uses apt to add the ubuntugis ppa, then install needed
+    ubuntu packages, including `python3-pip` if no `pip3` is found in `$PATH`.
+* `install-py-deps.sh`, which uses `pip3` to install a few python packages that
+    are difficult to install in other ways.
+
+You can also use them to install gips to a virtual environment:
+
+```
+$ sudo ./install-sys-deps.sh
+$ sudo ./install-sixs.sh            # if needed, see above
+$ sudo apt-get install python3-venv # if needed
+$ python3 -m venv /path/to/gips-venv --system-site-packages
+$ source /path/to/gips-venv/bin/activate
+(gips-venv) $ ./install-py-deps.sh      # installs packages to your venv
+(gips-venv) $ python3 setup.py develop  # installs packages to your venv, including gips
+(gips-venv) $ gips_config env --repos /path/to/gips/archive/dir --email nobody@example.com
+```
 
 ## Configuration
 
