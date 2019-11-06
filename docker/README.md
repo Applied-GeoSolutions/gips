@@ -6,7 +6,7 @@ contains sixs and can pass the tests that require it.  Build it with:
 
 ```
 docker build --no-cache -t gips-base -f Dockerfile .
-docker build --no-cache -t gips-ci -f docker/gips-ci.docker .
+docker build --no-cache -t gips-ci -f docker/gips-ci.docker .  # CF .gitlab-ci.yml
 docker build --no-cache -t gips-test-full -f docker/gips-test-full.docker .
 ```
 

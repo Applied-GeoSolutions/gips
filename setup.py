@@ -37,13 +37,10 @@ __version__ = imp.load_source('gips.version', 'gips/version.py').__version__
 # collect console scripts to install
 console_scripts = []
 for f in glob.glob('gips/scripts/*.py'):
-    try:
-        name = os.path.splitext(os.path.basename(f))[0]
-        if name not in ['__init__', 'core']:
-            script = 'gips_%s = gips.scripts.%s:main' % (name, name.lower())
-            console_scripts.append(script)
-    except:
-        print(traceback.format_exc())
+    name = os.path.splitext(os.path.basename(f))[0]
+    if name not in ['__init__', 'core']:
+        script = 'gips_%s = gips.scripts.%s:main' % (name, name.lower())
+        console_scripts.append(script)
 
 
 setup(
@@ -64,6 +61,7 @@ setup(
         ],
     },
     install_requires=[
+        # better to install here but it seems to cause apt conflicts:  'GDAL', 'numpy',
         'six>=1.9.0',
         # because requests is a diva and won't leave its trailer otherwise:
         'urllib3[secure]<1.24',
@@ -74,13 +72,14 @@ setup(
         'pyproj',
         'Py6S>=1.7.0',
         'shapely',
-        'gippy',
+        'gippy>=1.0',
         'homura==0.1.3',
         'python-dateutil',
         'pydap==3.2',
         'pysolar==0.6',
         'dbfread==2.0.7',
-        # TODO this format doesn't seem to work and I can find no documentation for it:
+        # this format doesn't work with the old pip3 included with ubuntu; to fix it, probably
+        # don't install ubuntu's pip3 and instead do: https://pip.pypa.io/en/stable/installing/
         'rios @ https://bitbucket.org/chchrsc/rios/downloads/rios-1.4.3.zip#egg=rios-1.4.3',
         'python-fmask @ https://bitbucket.org/chchrsc/python-fmask/downloads/python-fmask-0.5.0.zip#egg=python-fmask-0.5.0',
         'usgs', # 0.2.1 known to work

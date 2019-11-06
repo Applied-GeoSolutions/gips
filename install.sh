@@ -1,36 +1,46 @@
 #!/usr/bin/env bash
 
-echo "This hasn't yet been ported to python 3 + gippy 1.0"
-exit 1
+# This is a system install script for gips, known to work for Ubuntu 18.04.
+# Call it with a root path to your gips data repository root and email
+# address:
+#
+#   ./install.sh /archive user@example.com
+#
+# It installs system packages via apt and pip3 so should be run as root/sudo.
+
+
+die () {
+    echo >&2 "$@"
+    exit 1
+}
+
+[ "$#" -eq 2 ] || die "Usage:  $0 REPO_ROOT EMAIL"
+# setuptools has no way to filter out a specific python file so:
+[ -e gips/settings.py ] && die "gips/settings.py exists; shouldn't continue"
 
 set -e
-git remote show origin | grep 'Fetch URL: .*gips.git$' -q
+set -v
 
-echo -n "Enter full path to data repository: "
-read ARCHIVEDIR
+source install-sys-deps.sh # mostly through apt-get install
+source install-py-deps.sh
 
-echo -n "Enter your email address: "
-read EMAIL
+# TODO optionally install in a virtualenv:
+# virtualenv --system-site-packages venv; source venv/bin/activate
 
-sudo apt-get update
+### gips install (venv-able)
+# system install, not venv nor developer install:
+python3 setup.py install
+# TODO if this is extended to support developer and/or venv installs:
+# pip3 install -r dev_requirements.txt # if you wish to run the test suite; CF docker/
+# then one of setup.py or pip3 -e:
+#python3 setup.py develop
+# not sure if option still supported, and not sure if needed at all:
+#                   vvvvvvvvvvvvvvvvvvv
+#pip3 install --process-dependency-links -e .
 
-sudo apt-get install git virtualenv python python-pip gfortran libboost-all-dev\
-     libfreetype6-dev libgnutls-dev libatlas-base-dev libgdal-dev libgdal1-dev\
-     gdal-bin python-numpy python-scipy python-gdal swig2.0
+### configuration (varies by install type?  I guess?)
+# TODO used to do config but it's not clear that the email option is needed anymore:
+gips_config env --repos "$1" --email "$2"
 
-sudo -H pip install -U pip>=9.0.1
-
-virtualenv --system-site-packages venv
-
-source venv/bin/activate
-
-pip install --process-dependency-links -e .
-
-pip install -r dev_requirements.txt # if you wish to run the test suite; CF docker/
-
-gips_config env -r $ARCHIVEDIR -e $EMAIL
-gips_config user
-
-echo ""
-echo "Now edit settings.py for things like EARTHDATA password"
-echo "gips_project modis --fetch -s gips/test/NHseacoast.shp -d 2017-5-25 -v5 -p ndvi8"
+# TODO add advice for EARTHDATA_USER & EARTHDATA_PASS?
+# To establish user-specific settings, run `gips_config user` then edit ~/.gips/'

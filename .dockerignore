@@ -1,8 +1,19 @@
+# general python & tool dirs
+build
+dist
+.cache
+.coverage
+.git
+.idea
+.pytest_cache
+junk
+
+# various gips-specific things
 archive
 *venv
 docker/acolite_py_linux
 gips/data/merra/docs
-junk
+
 # all compiled python files everywhere
 **/*.pyc
 **/__pycache__

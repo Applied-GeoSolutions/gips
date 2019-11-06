@@ -4,18 +4,13 @@
 
 FROM gips-ci
 
-# brittle makeflie munging is a bad choice; none better available?
-RUN mkdir /tmp/sixs && \
-    curl http://rtwilson.com/downloads/6SV-1.1.tar -o /tmp/sixs/6SV-1.1.tar && \
-    cd /tmp/sixs && \
-    tar xf 6SV-1.1.tar && \
-    cd /tmp/sixs/6SV1.1 && \
-    sed -i 's/g77/gfortran -std=legacy -ffixed-line-length-none -ffpe-summary=none/g' Makefile && \
-    make && \
-    mv sixsV1.1 /usr/local/bin/sixs && \
-    rm -rf /tmp/sixs
+RUN cd /gips && ./install-sixs.sh
 
-# way to do it if you have the binary handy:
+### installing sixs & ortho binaries directly:
 #run apt-get install -y libgfortran3
 #copy sixs /usr/local/bin/sixs
 #run chmod +x /usr/local/bin/sixs
+
+# for coreg product testing (in landsat & maybe s2):
+#COPY ortho /usr/local/bin/ortho
+#run chmod +x /usr/local/bin/ortho
