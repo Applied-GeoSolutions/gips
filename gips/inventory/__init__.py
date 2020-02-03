@@ -30,6 +30,7 @@ from copy import deepcopy
 from collections import defaultdict
 
 import gippy
+from gippy.gippy import Chunk
 from gips.tiles import Tiles
 from gips.utils import VerboseOut, Colors
 from gips import utils
@@ -167,7 +168,15 @@ class ProjectInventory(Inventory):
     def data_size(self):
         """ Get 'shape' of inventory: #products x rows x columns """
         img = gippy.GeoImage(self.data[self.dates[0]].open(self.requested_products[0]))
-        sz = (len(self.requested_products), img.ysize(), img.xsize())
+        nbands_per_date = set([
+            sum([
+                gippy.GeoImage(self.data[d].open(p)).nbands()
+                for p in self.requested_products
+            ])
+            for d in self.dates
+        ])
+        assert len(nbands_per_date) == 1, 'bands per date varies, and violates assumptions'
+        sz = (list(nbands_per_date)[0], img.ysize(), img.xsize())
         return sz
 
     def get_data(self, dates=None, products=None, chunk=None):
@@ -177,21 +186,22 @@ class ProjectInventory(Inventory):
         if dates is None:
             dates = self.dates
 
-        days = numpy.array([int(d.strftime('%j')) for d in dates])
+        days = numpy.array([int(d.strftime('%j')) for d in dates], dtype=numpy.float64)
         imgarr = []
+
         if products is None:
             products = self.requested_products
 
+        if chunk is None:
+            imgsz = self.data_size()
+            chunk = Chunk(0, 0, imgsz[2], imgsz[1])
+
         for p in products:
             gimg = self.get_timeseries(p, dates=dates)
-            # TODO - move numpy.squeeze into swig interface file?
-            gippy.gippy = sys.modules['gippy.gippy']
-            ch = gippy.gippy.Chunk(chunk[0], chunk[1], chunk[2], chunk[3])
-            arr = numpy.squeeze(gimg.TimeSeries(days.astype('float64'), ch))
+            p_bands = gippy.GeoImage(self.data[dates[0]][p]).nbands()
+            arr = gimg.timeseries(days, chunk, p_bands).reshape(
+                gimg.nbands(), gimg.ysize(), gimg.xsize())
             arr[arr == gimg[0].nodata()] = numpy.nan
-            if len(days) == 1:
-                dims = arr.shape
-                arr = arr.reshape(1, dims[0], dims[1])
             imgarr.append(arr)
         data = numpy.vstack(tuple(imgarr))
         return data
