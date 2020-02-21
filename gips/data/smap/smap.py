@@ -176,13 +176,13 @@ class smapData(Data):
             fname = self.temp_product_filename(sensor, prod_type)  # moved to archive at end of loop
 
             if val[0] == 'smp':
-                img = gippy.GeoImage(allsds[15])
+                img = gippy.GeoImage(allsds[55])
             elif val[0] == 'smpe':
-                img = gippy.GeoImage(allsds[13])
+                img = gippy.GeoImage(allsds[51])
 
             # TODO: This is broken - GeoImage.create() apparently doesn't support datatypes
             imgdata = img.read()
-            imgout = gippy.GeoImage.create(fname, img.xsize(), img.ysize(), 1, 'float32')
+            imgout = gippy.GeoImage.create(fname, img.xsize(), img.ysize(), 1, dtype='float32')
             del img
             imgout.set_nodata(-9999.0)
             imgout.set_offset(0.0)
@@ -191,6 +191,7 @@ class smapData(Data):
             imgout.set_srs(self._projection)
             imgout.set_affine(np.array(self._products[prod_type]['_geotransform']))
             imgout[0].write(imgdata)
+
             # add product to inventory
             archive_fp = self.archive_temp_path(fname)
             self.AddFile(sensor, key, archive_fp)
