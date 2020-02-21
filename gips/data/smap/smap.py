@@ -36,14 +36,14 @@ class smapAsset(Asset):
     _sensors = {'RAD': {'description': 'Soil Moisture Active Passive Radiometer'}}
     _assets = {
         'SM_P_E': {
-            'url': 'https://n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP_E.002',
+            'url': 'https://n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP_E.003',
             'pattern': r'^SMAP\_.{2}\_SM\_P\_E\_.{8}\_.{6}\_.{3}\.h5$',
             'description': 'Passive Enhanced Radiometer Based SM at 9KM',
             'startdate': datetime.date(2015, 3, 31),
             'latency': 1,
         },
         'SM_P': {
-            'url': 'https://n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP.005',
+            'url': 'https://n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP.006',
             'pattern': r'^SMAP\_.{2}\_SM\_P\_.{8}\_.{6}\_.{3}\.h5$',
             'description': 'Passive Original Radiometer Based SM at 36KM',
             'startdate': datetime.date(2015, 3, 31),
