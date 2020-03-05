@@ -7,11 +7,11 @@ from . import driver_setup
 pytestmark = util.sys # skip everything unless --sys
 
 # 'driver': {'product': [ (path, type, data...),...]...}
-from .expected.std_project import expectations, mark_spec
+from .expected.std_export import expectations, mark_spec
 
 @pytest.mark.parametrize("driver, product",
                          util.params_from_expectations(expectations, mark_spec))
-def t_project(export_wrapper, driver, product):
+def t_export(export_wrapper, driver, product):
     """Test gips_project with warping."""
     record_mode, runner, working_dir = export_wrapper
     driver_setup.setup_repo_data(driver)
