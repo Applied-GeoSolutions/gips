@@ -128,7 +128,7 @@ def vprint(*args, sep=' ', end='\n', level=1, file=sys.stdout):
     if _lib_mode:
         logging.getLogger(_named_logger).log(verbosity_to_log_level(level), sep.join(args))
     elif verbosity() >= level:
-        print(*args, sep=sep, end=end, level=level, file=file)
+        print(*args, sep=sep, end=end, file=file)
 
 
 def verbosity(new=None):
