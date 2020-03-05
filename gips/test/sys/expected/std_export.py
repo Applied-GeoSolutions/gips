@@ -3,21 +3,21 @@ import collections
 from .. import util
 
 from . import landsat_export
-from . import modis_project
-from . import sentinel2_project
-from . import merra_project
+from . import modis_export
+from . import sentinel2_export
+from . import merra_export
 from . import hls_export
 from . import std_process
 
 mark_spec = std_process.lite_mark_spec.copy()
 expectations = {}
 
-expectations['modis'] = modis_project.expectations
+expectations['modis'] = modis_export.expectations
 
-expectations['merra'] = merra_project.expectations
+expectations['merra'] = merra_export.expectations
 expectations['hls'] = hls_export.expectations
 
-expectations['sentinel2'] = sentinel2_project.expectations
+expectations['sentinel2'] = sentinel2_export.expectations
 mark_spec['sentinel2'] = util.slow
 
 mark_spec['landsat'] = util.slow
