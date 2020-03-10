@@ -8,6 +8,6 @@ set -e -v
 # python deps that are difficult to install with setuptools:
 pip3 install -U numpy # gippy has some kind of problem otherwise
 # see setup.py for why this is done here:
-c_url=https://bitbucket.org/chchrsc
+c_url=https://bitbucket.org/ubarsc
 pip3 install -U "${c_url}/rios/downloads/rios-1.4.3.zip#egg=rios-1.4.3"
 pip3 install -U "${c_url}/python-fmask/downloads/python-fmask-0.5.0.zip#egg=python-fmask-0.5.0"
