@@ -80,8 +80,8 @@ setup(
         'dbfread==2.0.7',
         # this format doesn't work with the old pip3 included with ubuntu; to fix it, probably
         # don't install ubuntu's pip3 and instead do: https://pip.pypa.io/en/stable/installing/
-        'rios @ https://github.com/ubarsc/rios/archive/rios-1.4.3.zip#egg=rios-1.4.3',
-        'python-fmask @ https://github.com/ubarsc/python-fmask/archive/python-fmask-0.5.0.zip#egg=python-fmask-0.5.0',
+        'rios @ https://github.com/ubarsc/rios/archive/rios-1.4.5.zip#egg=rios-1.4.5',
+        'python-fmask @ https://github.com/ubarsc/python-fmask/archive/python-fmask-0.5.2.zip#egg=python-fmask-0.5.2',
         'usgs', # 0.2.1 known to work
         'backports.functools_lru_cache',
         'backoff',
