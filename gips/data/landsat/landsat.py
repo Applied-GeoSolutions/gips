@@ -1139,7 +1139,6 @@ class landsatData(gips.data.core.CloudCoverData):
                     imgout.set_gain(1.0)
                     imgout.set_bandname('NDVI', 1)
                     imgout[0].write(ndvi)
-                    imgout.save()
 
                 if val[0] == "landmask":
                     img = gippy.GeoImage([imgpaths['cfmask'], imgpaths['cfmask_conf']])
@@ -1156,7 +1155,6 @@ class landsatData(gips.data.core.CloudCoverData):
                     imgout = gippy.GeoImage.create_from(img, fname, 1, 'uint8')
                     imgout.set_bandname('Land mask', 1)
                     imgout[0].write(cfmask)
-                    imgout.save()
 
                 archive_fp = self.archive_temp_path(fname)
                 self.AddFile(sensor, key, archive_fp)
