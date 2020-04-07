@@ -578,6 +578,8 @@ def gridded_mosaic(images, outfile, rastermask, interpolation=0):
     for b in range(0, images[0].nbands()):
         imgout[b].add_meta(images[0][b].meta())
     imgout.add_mask(mask_img[0])
+    imgout.set_gain(images[0][0].gain())
+    imgout.set_offset(images[0][0].offset())
     imgout.save()
 
 
