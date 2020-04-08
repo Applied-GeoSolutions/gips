@@ -26,9 +26,12 @@ run_tests:
   stage: test
   script:
     - docker run --rm gips_test_$CI_COMMIT_REF_SLUG pytest -vv -s -k 'unit or int'
-    - docker run --rm
-      -v /net/cluster/projects/gips-dev/sys-test-assets/:/artifact-store
-      gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv --slow --setup-repo --sys -s -m lite
+    - docker run --rm -v /net/cluster/projects/gips-dev/sys-test-assets/:/artifact-store
+      gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv --slow --setup-repo --sys -s -m lite -k process
+    - docker run --rm -v /net/cluster/projects/gips-dev/sys-test-assets/:/artifact-store
+      gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv --slow --setup-repo --sys -s -m lite -k export
+    - docker run --rm -v /net/cluster/projects/gips-dev/sys-test-assets/:/artifact-store
+      gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv --slow --setup-repo --sys -s -m lite -k stats
   tags:
     - gipsdev
   after_script:

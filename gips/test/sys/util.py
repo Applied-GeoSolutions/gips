@@ -314,7 +314,7 @@ def sys_test_wrapper(request, path):
         final_files = find_files(path)
         created_files = set(final_files) - set(initial_files)
         # when recording the path, don't capture the directory of interest
-        rel_cf = [os.path.relpath(fp, path) for fp in created_files]
+        rel_cf = sorted(os.path.relpath(fp, path) for fp in created_files)
 
         # generate expectations but ignore index files
         cf_expectations = [generate_expectation(fn, path) for fn in rel_cf
