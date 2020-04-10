@@ -40,7 +40,7 @@ import numpy as np
 import requests
 
 import gippy
-from gippy import GeoVector
+from gippy import GeoImage, GeoVector
 from .exceptions import GipsException
 
 
@@ -581,6 +581,39 @@ def gridded_mosaic(images, outfile, rastermask, interpolation=0):
     imgout.set_gain(images[0][0].gain())
     imgout.set_offset(images[0][0].offset())
     imgout.save()
+
+
+def vrt_mosaic(filenames, outpath, interpolation=0, res=None, rastermask=None, site=None):
+    extent = []
+    if rastermask:
+        mask_img = GeoImage(rastermask)
+        ext = mask_img.extent()
+        extent = [
+            '-te',
+            ext.x0(), ext.y0(),
+            ext.x1(), ext.y1()
+        ]
+        mask_img = None
+    elif res is not None:
+        ext = site.extent()
+        xshift = -0.5 * abs(res[0])
+        yshift = -0.5 * abs(res[1])
+        extent = [
+            '-te',
+            ext.x0() + xshift, ext.y0() + yshift,
+            ext.x1() + xshift, ext.y1() + yshift
+        ]
+    extent = [str(v) for v in extent]
+
+    resampler = ['near', 'bilinear', 'cubic']
+    buildvrt_args = [
+        'gdalbuildvrt', '-r', resampler[interpolation]
+    ]
+    buildvrt_args.extend(extent)
+    buildvrt_args.append(outpath)
+    buildvrt_args.extend(filenames)
+    print('gdalbuildvrt args:', buildvrt_args)
+    subprocess.check_call(buildvrt_args)
 
 
 def julian_date(date_and_time, variant=None):

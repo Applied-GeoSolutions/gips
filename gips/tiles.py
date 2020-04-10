@@ -74,7 +74,7 @@ class Tiles(object):
         [t.process(*args, products=self.products.products, **kwargs) for t in list(self.tiles.values())]
 
     def mosaic(self, datadir, res=None, interpolation=0, crop=False,
-               overwrite=False, alltouch=False):
+               overwrite=False, alltouch=False, vrt=False):
         """For each product, combine its tiles into a single mosaic.
 
         Warp if res provided."""
@@ -91,7 +91,8 @@ class Tiles(object):
             # create data directory when it is needed
             mkdir(datadir)
             # TODO - this is assuming a tif file.  Use gippy FileExtension function when it is exposed
-            fn = '{}_{}_{}.tif'.format(bname, sensor, product)
+            extension = 'vrt' if vrt else 'tif'
+            fn = '{}_{}_{}.{}'.format(bname, sensor, product, extension)
             final_fp = os.path.join(datadir, fn)
             if not os.path.exists(final_fp) or overwrite:
                 err_msg = ("Error mosaicking " + final_fp + ". Did you forget"
@@ -110,7 +111,14 @@ class Tiles(object):
 
                         images = [gippy.GeoImage(f) for f in filenames]
 
-                        if self.spatial.rastermask is not None:
+                        if vrt:
+                            spatial_kwarg = {}
+                            if self.spatial.rastermask:
+                                spatial_kwarg['rastermask'] = self.spatial.rastermask
+                            else:
+                                spatial_kwarg['site'] = self.spatial.site
+                            utils.vrt_mosaic(filenames, tmp_fp, interpolation, res, **spatial_kwarg)
+                        elif self.spatial.rastermask is not None:
                             utils.gridded_mosaic(images, tmp_fp, self.spatial.rastermask,
                                                  interpolation)
                         elif res is not None:
