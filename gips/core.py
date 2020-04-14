@@ -121,7 +121,7 @@ class SpatialExtent(object):
                 # TODO [:-4] is a poor assumption:
                 vectorfile = os.path.join(os.path.dirname(rastermask),
                                           os.path.basename(rastermask)[:-4] + '.shp')
-                features = open_vector(utils.vectorize(rastermask, vectorfile), where='DN=0')
+                features = open_vector(utils.vectorize(rastermask, vectorfile), where='DN=1')
                 for f in features:
                     extents.append(cls(dataclass, feature=f, rastermask=rastermask,
                                         tiles=tiles, pcov=pcov, ptile=ptile))
