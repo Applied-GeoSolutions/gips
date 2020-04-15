@@ -266,6 +266,7 @@ def params_from_expectations(expectations, mark_spec=None):
 
 def record_path():
     path = pytest._config_saved_by_gips.getoption('--record')
+    print("RECORD PATH:", path)
     return False if path in (None, '') else path
 
 def sys_test_wrapper(request, path):

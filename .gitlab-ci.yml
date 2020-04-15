@@ -33,7 +33,7 @@ run_tests:
 #    - docker run --rm -v /net/cluster/projects/gips-dev/sys-test-assets/:/artifact-store
 #      gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv --slow --setup-repo --sys -s -m lite -k stats
      - docker run --rm -v /net/cluster/projects/gips-dev/sys-test-assets/:/artifact-store
-       gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv gips/test/sys/t_export.py --sys --slow --record=rec.py
+       gips_test_$CI_COMMIT_REF_SLUG pytest -r es -vv gips/test/sys/t_export.py --sys --slow --record rec.py
   artifacts:
       paths:
       - rec.py
