@@ -8,7 +8,7 @@ pytestmark = util.sys # skip everything unless --sys
 
 # 'driver': {'prodnuct': [ (path, type, data...),...]...}
 from .expected.std_export import expectations, mark_spec
-from .expected.std_export_vrt import expectations as vrt_expectations
+#from .expected.std_export_vrt import expectations as vrt_expectations
 
 @pytest.mark.parametrize("driver, product",
                          util.params_from_expectations(expectations, mark_spec))
