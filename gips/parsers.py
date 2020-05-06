@@ -143,6 +143,8 @@ class GIPSParser(argparse.ArgumentParser):
         group.add_argument('--tree', help=h, default=False, action='store_true')
         h = "Don't process tiles when exporting"
         group.add_argument('--dont-process', help=h, default=False, action='store_true')
+        h = "Export as a vrt image"
+        group.add_argument('--vrt', help=h, default=False, action='store_true')
         self.parent_parsers.append(parser)
         return parser
 

@@ -39,8 +39,10 @@ import logging
 import numpy as np
 import requests
 
+from osgeo import osr
+
 import gippy
-from gippy import GeoVector
+from gippy import GeoImage, GeoVector
 from .exceptions import GipsException
 
 
@@ -581,6 +583,64 @@ def gridded_mosaic(images, outfile, rastermask, interpolation=0):
     imgout.set_gain(images[0][0].gain())
     imgout.set_offset(images[0][0].offset())
     imgout.save()
+
+
+def vrt_mosaic(filenames, outpath, interpolation=0, res=None, rastermask=None, site=None):
+    verbose_out("WARNING: VRTs don't reproject site masks or input data. "
+                "Make sure all data is in the same projection.", 2)
+
+    sr = None
+    for filename in filenames:
+        i = GeoImage(filename)
+        if not sr:
+            sr = osr.SpatialReference()
+            sr.ImportFromWkt(i.srs())
+        else:
+            other_sr = osr.SpatialReference()
+            other_sr.ImportFromWkt(i.srs())
+            if not sr.IsSame(other_sr):
+                raise ValueError("Not all files are in the same projection.")
+
+    if not rastermask:
+        site_sr = osr.SpatialReference()
+        site_sr.ImportFromWkt(site.srs())
+        if not sr.IsSame(site_sr):
+            raise ValueError("Vector is not is the same projection as input files.")
+
+    extent = []
+    if rastermask:
+        mask_img = GeoImage(rastermask)
+        mask_sr = osr.SpatialReference()
+        mask_sr.ImportFromWkt(mask_img.srs())
+        if not sr.IsSame(mask_sr):
+            raise ValueError("Raster mask is not in the same projection as input files.")
+        ext = mask_img.extent()
+        extent = [
+            '-te',
+            ext.x0(), ext.y0(),
+            ext.x1(), ext.y1()
+        ]
+        mask_img = None
+    elif res is not None:
+        ext = site.extent()
+        xshift = -0.5 * abs(res[0])
+        yshift = -0.5 * abs(res[1])
+        extent = [
+            '-te',
+            ext.x0() + xshift, ext.y0() + yshift,
+            ext.x1() + xshift, ext.y1() + yshift
+        ]
+    extent = [str(v) for v in extent]
+
+    resampler = ['near', 'bilinear', 'cubic']
+    buildvrt_args = [
+        'gdalbuildvrt', '-r', resampler[interpolation]
+    ]
+    buildvrt_args.extend(extent)
+    buildvrt_args.append(outpath)
+    buildvrt_args.extend(filenames)
+    print('gdalbuildvrt args:', buildvrt_args)
+    subprocess.check_call(buildvrt_args)
 
 
 def julian_date(date_and_time, variant=None):

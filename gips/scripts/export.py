@@ -116,7 +116,7 @@ def run_export(args):
                         datadir=datadir, tree=args.tree, overwrite=args.overwrite,
                         res=args.res, interpolation=args.interpolation,
                         crop=args.crop, alltouch=args.alltouch,
-                        process=(not args.dont_process),
+                        process=(not args.dont_process), vrt=args.vrt
                     )
                     inv = ProjectInventory(datadir)
                     inv.pprint()

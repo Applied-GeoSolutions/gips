@@ -30,6 +30,7 @@ from datetime import datetime, date, timedelta
 from csv import DictReader
 import re
 import ftplib
+import subprocess
 import tempfile
 from gips.core import SpatialExtent, TemporalExtent
 
@@ -149,6 +150,13 @@ class prismData(Data):
             'startdate': Asset._startdate,
             'latency': Asset._latency,
         },
+        'vrtppt': {
+            'description': 'Precipitate (vrt)',
+            'assets': ['_ppt'],
+            'bands': [{'name': 'ppt', 'units': 'mm'}],
+            'startdate': Asset._startdate,
+            'latency': Asset._latency,
+        },
         'pptsum': {
             'description': 'Cumulative Precipitate',
             'assets': ['_ppt'],
@@ -227,10 +235,17 @@ class prismData(Data):
                 continue
             prod_fn = '{}_{}_{}.tif'.format(self.basename, 'prism', key)
             archived_fp = os.path.join(self.path, prod_fn) # final destination
-            if val[0] in ['ppt', 'tmin', 'tmax']:
+            if val[0] in ['ppt', 'tmin', 'tmax', 'vrtppt']:
                 with self.make_temp_proc_dir() as tmp_dir:
                     tmp_fp = os.path.join(tmp_dir, prod_fn)
-                    os.symlink(vsinames[self._products[key]['assets'][0]], tmp_fp)
+                    if val[0] == 'vrtppt':
+                        subprocess.check_call([
+                            'gdalbuildvrt',
+                            tmp_fp,
+                            vsinames[self._products[key]['assets'][0]],
+                        ])
+                    else:
+                        os.symlink(vsinames[self._products[key]['assets'][0]], tmp_fp)
                     os.rename(tmp_fp, archived_fp)
             elif val[0] == 'pptsum':
                 if len(val) < 2:
