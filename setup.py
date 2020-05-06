@@ -68,7 +68,7 @@ setup(
         'requests',
         'django==1.10',
         'netCDF4',
-        'boto3<=1.5', # last tested on 1.4.x series; optional: only for S3 fetches
+        'boto3<2', # let this ride for v1.x  ircwaves has tested in production (yay!)
         'pyproj',
         'Py6S>=1.7.0',
         'shapely',
