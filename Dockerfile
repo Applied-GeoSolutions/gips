@@ -3,7 +3,7 @@
 
 FROM ubuntu:18.04
 
-ARG GIPPY_INSTALL_URL="git+https://gitlab.com/daganinc/gippy.git@1.0.4#egg=gippy"
+ARG GIPPY_INSTALL_URL="git+https://github.com/daganinc/gippy.git@1.0.4#egg=gippy"
 
 COPY . /gips
 WORKDIR /gips
@@ -13,7 +13,7 @@ RUN cd /gips && ./install-sys-deps.sh && ./install-py-deps.sh
 
 ### install gippy & its dependencies suitably for developing gippy concurrently if needed
 RUN apt-get install -y swig git ssh
-RUN pip3 install -e $GIPPY_INSTALL_URL --src /
+RUN pip3 install $GIPPY_INSTALL_URL
 # at least one causes a version conflict later due to the python3-cryptography ubuntu pkg:
 RUN apt-get remove -y --auto-remove git ssh
 
