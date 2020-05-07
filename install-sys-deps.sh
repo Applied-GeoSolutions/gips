@@ -29,7 +29,7 @@ apt-get install -y \
 
 # needed for coregistration routines
 curl -o /usr/local/bin/ortho \
-     https://gitlab.com/daganinc/arop/raw/v2.2.9/bin/ortho?inline=false \
+     https://gitlab.com/dagan-open/arop/raw/v2.2.9/bin/ortho?inline=false \
     && chmod +x /usr/local/bin/ortho
 
 # can't presume user wants ubuntu's python3-pip because it's common practice to install
