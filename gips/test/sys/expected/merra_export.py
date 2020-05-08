@@ -1,7 +1,7 @@
 import collections
 
 expectations = collections.OrderedDict([
- # t_project[merra-patm] recording:
+ # t_export[merra-patm] recording:
  ('patm',
   [('0/2015135_merra_patm.tif',
     'raster',
@@ -53,7 +53,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-prcp] recording:
+ # t_export[merra-prcp] recording:
  ('prcp',
   [('0/2015135_merra_prcp.tif',
     'raster',
@@ -105,7 +105,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-rhum] recording:
+ # t_export[merra-rhum] recording:
  ('rhum',
   [('0/2015135_merra_rhum.tif',
     'raster',
@@ -157,7 +157,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-shum] recording:
+ # t_export[merra-shum] recording:
  ('shum',
   [('0/2015135_merra_shum.tif',
     'raster',
@@ -209,7 +209,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-srad] recording:
+ # t_export[merra-srad] recording:
  ('srad',
   [('0/2015135_merra_srad.tif',
     'raster',
@@ -261,7 +261,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-tave] recording:
+ # t_export[merra-tave] recording:
  ('tave',
   [('0/2015135_merra_tave.tif',
     'raster',
@@ -313,7 +313,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-tmax] recording:
+ # t_export[merra-tmax] recording:
  ('tmax',
   [('0/2015135_merra_tmax.tif',
     'raster',
@@ -365,7 +365,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-tmin] recording:
+ # t_export[merra-tmin] recording:
  ('tmin',
   [('0/2015135_merra_tmin.tif',
     'raster',
@@ -417,7 +417,7 @@ expectations = collections.OrderedDict([
      '  Metadata:',
      '    STATISTICS_VALID_PERCENT=0'])]),
 
- # t_project[merra-wind] recording:
+ # t_export[merra-wind] recording:
  ('wind',
   [('0/2015135_merra_wind.tif',
     'raster',
