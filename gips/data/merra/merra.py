@@ -271,7 +271,7 @@ class merraData(Data):
             'bands': ['patm']
         },
         'shum': {
-            'description': 'Relative humidity (kg kg-1)',
+            'description': 'Specific humidity (kg kg-1)',
             'assets': ['SLV'],
             'layers': ['QV2M'],
             'bands': ['shum']
