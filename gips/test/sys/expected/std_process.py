@@ -10,6 +10,7 @@ from . import merra_process
 from . import sentinel2_process
 from . import hls_process
 from . import landsat_process
+from . import sentinel1_process
 
 expectations = {}
 
@@ -21,6 +22,7 @@ lite_mark_spec = { k: util.lite for k in [
     ('sentinel2', 'evi-toa'),
     ('prism', 'ppt', 'vrtppt'),
     ('hls', 'ndvi'),
+    ('sentinel1', 'sigma0'),
     #('sar', 'sign'), # TODO automate arttifact-* pytest.ini values
 ]}
 
@@ -32,8 +34,10 @@ expectations['merra'] = merra_process.expectations
 expectations['sentinel2'] = sentinel2_process.expectations
 expectations['hls'] = hls_process.expectations
 expectations['landsat'] = landsat_process.expectations
+expectations['sentinel1'] = sentinel1_process.expectations
 
 mark_spec['sentinel2'] = util.slow
+mark_spec['sentinel1'] = util.slow
 
 # TODO some of these may be fast enough without --setup-repo
 for k in [('landsat', 'ref-toa'), ('landsat', 'rad-toa')]:

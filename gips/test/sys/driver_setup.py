@@ -24,6 +24,7 @@ STD_ARGS = {
     'aod': ('aod', '-s', util.NE_SHP_PATH, '-d', '2017-004', '-v4'),
     # --overwrite prevents re-use of extant product files to help stabilize
     # test outcomes; see https://gitlab.com/appliedgeosolutions/gips/issues/522
+    'sentinel1': ('sentinel1', '-s', util.SENTINEL1_TILE_PATH, '-d', '2020-006', '-v4'),
     'sentinel2': ('sentinel2', '-s', util.DURHAM_SHP_PATH, '-d2017-183', '-v4', '--overwrite'),
     'sar': ('sar', '-t', 'N07E099', 'N19E100', 'N00E099', '-d2009,2015', '-v4'),
     'daymet' : ('daymet', '-d', '1993-1-18', '-s', util.DURHAM_SHP_PATH),

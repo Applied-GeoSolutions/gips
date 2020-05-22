@@ -56,6 +56,10 @@ USGS_PASS = ""
 ESA_USER = ""
 ESA_PASS = ""
 
+# For SciHub authentication
+SCIHUB_USER = ""
+SCIHUB_PASS = ""
+
 REPOS = {
     'aod': {
         'repository': '$TLD/aod',
@@ -116,7 +120,12 @@ REPOS = {
     },
     'chirps': {
         'repository': '$TLD/chirps',
-    }
+    },
+    'sentinel1': {
+        'repository': '$TLD/sentinel1',
+        'username': SCIHUB_USER,
+        'password': SCIHUB_PASS,
+    },
 }
 
 

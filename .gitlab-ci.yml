@@ -13,8 +13,7 @@ make_image:
     #- wget -O gitlab_ci ftp://$AGSFTPUSERNAME:$AGSFTPPASSWORD@agsftp.ags.io/gipsftp/gitlab_ci
     #- wget -O gips_creds.sh.enc
     #   ftp://$AGSFTPUSERNAME:$AGSFTPPASSWORD@agsftp.ags.io/gipsftp/gips_creds.sh.enc
-
-    - docker build --no-cache -t gips-base -f Dockerfile .
+    - docker build --no-cache -t gips-base --build-arg SENTINEL1=NO -f Dockerfile .
     - docker build --no-cache -t gips_test_$CI_COMMIT_REF_SLUG -f docker/gips-ci.docker .
   tags:
     - gipsdev
@@ -37,7 +36,6 @@ run_tests:
   after_script:
     - docker image rm gips_test_$CI_COMMIT_REF_SLUG
     - docker system prune -f
-
 
 #publish_image:
 #  stage: deploy
