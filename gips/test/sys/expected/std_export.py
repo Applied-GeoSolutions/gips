@@ -8,6 +8,7 @@ from . import sentinel2_export
 from . import merra_export
 from . import hls_export
 from . import std_process
+from . import sentinel1_export
 
 mark_spec = std_process.lite_mark_spec.copy()
 expectations = {}
@@ -22,6 +23,9 @@ mark_spec['sentinel2'] = util.slow
 
 mark_spec['landsat'] = util.slow
 expectations['landsat'] = landsat_export.expectations
+
+mark_spec['sentinel1'] = util.slow
+expectations['sentinel1'] = sentinel1_export.expectations
 
 expectations['aod'] = collections.OrderedDict([
  # t_project[aod-aod] recording:

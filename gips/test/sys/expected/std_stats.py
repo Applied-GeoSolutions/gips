@@ -304,3 +304,7 @@ expectations['landsat'] = collections.OrderedDict([
         '2017-213,CIRRUS,0.0002,0.0152,0.00160228,0.000582327,7.07733,220848.0\r\n'])]),
     
 ])
+
+expectations['sentinel1'] = {
+    'sigma0': []
+}

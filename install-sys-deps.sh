@@ -25,7 +25,7 @@ apt-get update -y
 # TODO gfortran is only needed for sixs; remove it to the sixs install script
 apt-get install -y \
     gdal-bin libgdal-dev python-dev python3-dev python3-gdal python-gdal \
-    curl wget gfortran libgnutls28-dev
+    curl wget gfortran libgnutls28-dev git libspatialindex-dev
 
 # needed for coregistration routines
 curl -o /usr/local/bin/ortho \

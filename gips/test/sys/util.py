@@ -13,7 +13,7 @@ from gips.inventory import orm # believed to be safe even though it's the code u
 
 def set_constants(config):
     """Use pytest config API to set globals pointing at needed file paths."""
-    global TEST_DATA_DIR, DATA_REPO_ROOT, OUTPUT_DIR, NH_SHP_PATH, NH_4326_PATH, DURHAM_SHP_PATH, NE_SHP_PATH
+    global TEST_DATA_DIR, DATA_REPO_ROOT, OUTPUT_DIR, NH_SHP_PATH, NH_4326_PATH, DURHAM_SHP_PATH, NE_SHP_PATH, SENTINEL1_TILE_PATH
     TEST_DATA_DIR  = str(config.rootdir.join('gips/test'))
     DATA_REPO_ROOT = config.getini('data-repo')
     OUTPUT_DIR     = config.getini('output-dir')
@@ -21,6 +21,7 @@ def set_constants(config):
     NH_4326_PATH   = os.path.join(TEST_DATA_DIR, 'NH_4326.shp')
     NE_SHP_PATH    = os.path.join(TEST_DATA_DIR, 'NE.shp')
     DURHAM_SHP_PATH = os.path.join(TEST_DATA_DIR, 'durham.shp')
+    SENTINEL1_TILE_PATH = os.path.join(TEST_DATA_DIR, 'tile_563-313.shp')
 
 slow = pytest.mark.skipif('not config.getoption("slow")',
                           reason="--slow is required for this test")

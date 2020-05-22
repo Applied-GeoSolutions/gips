@@ -1,5 +1,10 @@
 import collections
-mark_spec = {}
+from . import sentinel1_fetch
+from .. import util
+
+mark_spec = {
+    'sentinel1': util.slow
+}
 
 expectations = collections.OrderedDict([
  ('merra',
@@ -405,5 +410,6 @@ expectations = collections.OrderedDict([
      'hash',
      'sha256',
      'bcc67ed9b261d7a23e519f2127334d59346c676b3f70dba13b3804f760df0c4a')],
- )
+ ),
+    ('sentinel1', sentinel1_fetch.expectations,),
 ])
