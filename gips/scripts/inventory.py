@@ -36,20 +36,15 @@ desired, eg:
     gips_inventory prism --rectify
 """
 
-from functools import partial
 import json
 
 from gips import __version__ as gipsversion
 from gips.parsers import GIPSParser
 from gips.core import SpatialExtent, TemporalExtent
-from gips.utils import Colors, open_vector
+from gips.utils import Colors, extents2geojson
 from gips import utils
 from gips.inventory import DataInventory
 from gips.inventory import dbinv, orm
-
-import pyproj
-import shapely
-import shapely.ops
 
 
 def main():
@@ -99,25 +94,8 @@ def main():
             inv.pprint(md=args.md, size=args.size)
 
         if args.dump_geojson_extent:
-            tile_geoms = []
-            for se in spatial_extents:
-                tiles_vector = open_vector(
-                    se.repo.get_setting("tiles"),
-                    key=se.repo._tile_attribute
-                )
-                project = partial(
-                    pyproj.transform,
-                    pyproj.Proj(tiles_vector.srs()),
-                    pyproj.Proj('epsg:4326')
-                )
-                for tile in se.tiles:
-                    tile_feat = tiles_vector[tile]
-                    tile_geom = shapely.wkt.loads(tile_feat.wkt_geometry())
-                    tile_geoms.append(shapely.ops.transform(project, tile_geom))
-                del tiles_vector
-            extent = shapely.ops.unary_union(tile_geoms)
             with open(args.dump_geojson_extent, 'w') as geojson_out:
-                json.dump(extent.__geo_interface__, geojson_out)
+                json.dump(extents2geojson(spatial_extents), geojson_out)
 
     utils.gips_exit() # produce a summary error report then quit with a proper exit status
 
