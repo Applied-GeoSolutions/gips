@@ -35,11 +35,15 @@ import datetime
 import time
 import json
 import logging
+from functools import partial
 
 import numpy as np
 import requests
 
 from osgeo import osr
+import pyproj
+import shapely
+import shapely.ops
 
 import gippy
 from gippy import GeoImage, GeoVector
@@ -426,6 +430,26 @@ def transform(filename, srs):
     cmd = 'ogr2ogr %s %s -t_srs %s' % (fout, filename, prjfile)
     result = subprocess.getstatusoutput(cmd)
     return fout
+
+
+def extents2geojson(spatial_extents):
+    tile_geoms = []
+    for se in spatial_extents:
+        tiles_vector = open_vector(
+            se.repo.get_setting("tiles"),
+            key=se.repo._tile_attribute
+        )
+        project = partial(
+            pyproj.transform,
+            pyproj.Proj(tiles_vector.srs()),
+            pyproj.Proj('epsg:4326')
+        )
+        for tile in se.tiles:
+            tile_feat = tiles_vector[tile]
+            tile_geom = shapely.wkt.loads(tile_feat.wkt_geometry())
+            tile_geoms.append(shapely.ops.transform(project, tile_geom))
+            del tiles_vector
+        return shapely.ops.unary_union(tile_geoms).__geo_interface__
 
 
 def crop2vector(img, vector):

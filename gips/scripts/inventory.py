@@ -36,10 +36,12 @@ desired, eg:
     gips_inventory prism --rectify
 """
 
+import json
+
 from gips import __version__ as gipsversion
 from gips.parsers import GIPSParser
 from gips.core import SpatialExtent, TemporalExtent
-from gips.utils import Colors
+from gips.utils import Colors, extents2geojson
 from gips import utils
 from gips.inventory import DataInventory
 from gips.inventory import dbinv, orm
@@ -91,6 +93,9 @@ def main():
             inv = DataInventory(cls, se, TemporalExtent(args.dates, args.days), **vars(args))
             inv.pprint(md=args.md, size=args.size)
 
+        if args.dump_geojson_extent:
+            with open(args.dump_geojson_extent, 'w') as geojson_out:
+                json.dump(extents2geojson(spatial_extents), geojson_out)
 
     utils.gips_exit() # produce a summary error report then quit with a proper exit status
 

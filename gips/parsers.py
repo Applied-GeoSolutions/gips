@@ -106,6 +106,8 @@ class GIPSParser(argparse.ArgumentParser):
             default=1, type=int
         )
         group.add_argument('-p', '--products', help='Requested Products', nargs='*')
+        h = 'File to write the extent of this inventory to as GeoJSON'
+        group.add_argument('--dump-geojson-extent', help=h, default=None, type=str)
         self.parent_parsers.append(parser)
         return parser
 
