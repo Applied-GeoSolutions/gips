@@ -439,10 +439,12 @@ def extents2geojson(spatial_extents):
             se.repo.get_setting("tiles"),
             key=se.repo._tile_attribute
         )
+        sr = osr.SpatialReference()
+        sr.ImportFromWkt(tiles_vector.srs())
         project = partial(
             pyproj.transform,
-            pyproj.Proj(tiles_vector.srs()),
-            pyproj.Proj('epsg:4326')
+            pyproj.Proj(sr.ExportToProj4()),
+            pyproj.Proj(init='epsg:4326')
         )
         for tile in se.tiles:
             tile_feat = tiles_vector[tile]
