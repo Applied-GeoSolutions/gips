@@ -6,7 +6,6 @@ from xml.etree import ElementTree
 from gips.data.sentinel2 import sentinel2Asset
 
 
-_url_base = sentinel2Asset._gs_object_url_base.format(sentinel2Asset.gs_bucket_name)
 # each dataObject with a given ID should be unique and singular
 _metadata_object_id_pile = { # mapping from asset's keys to manifest XML IDs
     'datastrip-md': "S2_Level-1C_Datastrip1_Metadata",
@@ -48,7 +47,10 @@ def get_url_for_object_id(path_prefix, manifest_root, data_object_id):
         "./dataObjectSection/dataObject[@ID='{}']/byteStream/fileLocation".format(data_object_id))
     # the fileLocationElement's href attrib has the relative path (it lies and claims to be a URL):
     relative_path = file_loc_elem.attrib['href'].lstrip('./') # starts with './'
-    return _url_base + path_prefix + '/' + relative_path
+    # to do http urls in the asset:
+    # _url_base = sentinel2Asset._gs_object_url_base.format(sentinel2Asset.gs_bucket_name)
+    # return _url_base + path_prefix + '/' + relative_path
+    return path_prefix + '/' + relative_path
 
 
 def validate_raster_url_pile(pile):
@@ -75,15 +77,20 @@ def find_asset_keys(manifest_content, path_prefix, cloud_cover_pct):
         keys[key] = get_url_for_object_id(path_prefix, manifest_root, object_id)
     return keys
 
+def save_asset_json(destination_path, proto_asset):
+    """Take the output from find_asset_keys and finalize it, saving to a json file."""
+    sentinel2Asset.download_gs(destination_path, proto_asset)
 
 # sample fn inputs
+local_asset_path = 'S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_gs.json'
 path_prefix = 'tiles/56/C/MB/S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE'
 manifest_path = './tiles_56_C_MB_S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_manifest.safe'
 
 with open(manifest_path, 'r') as fo:
     content = fo.read()
 
-urls = find_asset_keys(content, path_prefix, 35.3) # made-up cloud cover
+proto_asset = find_asset_keys(content, path_prefix, 35.3) # made-up cloud cover
+save_asset_json(local_asset_path, proto_asset)
 
 print("GOT URLS:")
-pprint(urls)
+pprint(proto_asset)
