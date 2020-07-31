@@ -5,9 +5,10 @@ from pprint import pprint
 from xml.etree import ElementTree
 from urllib.parse import urlparse
 
+import boto3
 import requests
 
-from gips.data.sentinel2 import sentinel2Asset
+from gips.data.sentinel2 import sentinel2Asset, sentinel2Data
 
 # TODO, some of this, atm:
 """Builds sentinel2 google storage assets (asset type L1CGS).
@@ -110,6 +111,29 @@ def get_manifest_content(base_url):
     r = requests.get(url)
     r.raise_for_status()
     return r.text
+
+
+def fetch_assets_to_s3(tiles, dates, pcloud, bucket):
+    s2_repo = sentinel2Asset.get_setting('repository')
+    bucket = boto3.resource('s3').Bucket(bucket)
+
+    assets = get_assets_from_table(tiles, dates, pcloud)
+    for a in assets:
+        content = get_manifest_content(base_url)
+        proto_asset = find_asset_keys(content, PATH_PREFIX, a[2])
+        save_asset_json(os.path.join(s2_repo, 'stage'), proto_asset)
+
+    sentinel2Data.archive_assets(os.path.join(s2_repo, 'stage'))
+
+    for root, _, files in os.walk(s2_repo):
+        for f in files:
+            full_path = os.path.join(root, f)
+            if os.path.isfile(full_path):
+                prefix = full_path.replace(
+                    s2_repo.replace('sentinel2', ''),
+                    ''
+                ).lstrip("/")
+                bucket.upload_file(full_path, prefix)
 
 
 def test_execution():
