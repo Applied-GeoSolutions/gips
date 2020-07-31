@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
+import os
 import csv
 import contextlib
 from datetime import date
 import datetime
 import pprint
+
+from gips.data.sentinel2 import build_gs_assets
 
 
 @contextlib.contextmanager
@@ -44,7 +47,18 @@ def query_index_csv(tiles, start_date, end_date, cloud_cover_threshold, csv_path
                 yield (t, d, cc, bu)
 
 
-def test_execution(full_run=False):
+def make_assets_from_query(tiles, start_date, end_date,
+                           cloud_cover_threshold, csv_path, output_dir):
+    for rv in query_index_csv(tiles, start_date, end_date, cloud_cover_threshold, csv_path):
+        # TODO unused atm, not sure if want to do /tile/date/file.json like in a gips archive:
+        # v     v
+        tile, date, ccpct, base_url = rv
+        asset_bn = base_url.split('/')[-1] + '_gs.json'
+        asset_fp = os.path.join(output_dir, asset_bn)
+        build_gs_assets.build_asset_from_base_url(base_url, ccpct, asset_fp)
+
+
+def test_query_index_csv(full_run=False):
     # cut millions of lines down to 100,000: gunzip -c index.csv.gz | head -n100000 > test-index.csv
     csv_path = './test-index.csv'
     if full_run:
@@ -59,6 +73,18 @@ def test_execution(full_run=False):
     print("GOT results list:")
     pprint.pprint(rv)
 
+def test_make_assets_from_query(full_run=False):
+    csv_path = './test-index.csv'
+    if full_run:
+        csv_path = './index.csv'
+    tiles = '20MKU', '57MYM'
+    dates = date(2019, 3, 20), date(2020, 1, 25)
+    ccthresh = 50.0
+    test_dir_path = 'test-output'
+    make_assets_from_query(tiles, *dates, ccthresh, csv_path, test_dir_path)
+    print("assets saved to {}:".format(test_dir_path))
+    os.system("ls " + test_dir_path)
 
 if __name__ == '__main__':
-    test_execution()
+    test_query_index_csv()
+    test_make_assets_from_query()
