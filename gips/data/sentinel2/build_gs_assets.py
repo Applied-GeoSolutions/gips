@@ -10,6 +10,8 @@ import requests
 
 from gips.data.sentinel2 import sentinel2Asset, sentinel2Data
 
+from query_csv import make_assets_from_query
+
 # TODO, some of this, atm:
 """Builds sentinel2 google storage assets (asset type L1CGS).
 
@@ -113,15 +115,12 @@ def get_manifest_content(base_url):
     return r.text
 
 
-def fetch_assets_to_s3(tiles, dates, pcloud, bucket):
+def fetch_assets_to_s3(tiles, dates, pcloud, csv_path, bucket):
     s2_repo = sentinel2Asset.get_setting('repository')
+    s2_stage = os.path.join(s2_repo, 'stage')
     bucket = boto3.resource('s3').Bucket(bucket)
 
-    assets = get_assets_from_table(tiles, dates, pcloud)
-    for a in assets:
-        content = get_manifest_content(base_url)
-        proto_asset = find_asset_keys(content, PATH_PREFIX, a[2])
-        save_asset_json(os.path.join(s2_repo, 'stage'), proto_asset)
+    make_assets_from_query(tiles, *dates, pcloud, csv_path, s2_stage)
 
     sentinel2Data.archive_assets(os.path.join(s2_repo, 'stage'))
 
