@@ -5,6 +5,16 @@ from xml.etree import ElementTree
 
 from gips.data.sentinel2 import sentinel2Asset
 
+# TODO, some of this, atm:
+"""Builds sentinel2 google storage assets (asset type L1CGS).
+
+To avoid doing auth, it searches for known assets in a file that must be downloaded separately, index.cs.gz.
+It then gets a metadata file from the cloud and builds the asset json file that
+the sentinel2 driver expects.
+
+See https://cloud.google.com/storage/docs/public-datasets/sentinel-2.
+"""
+
 
 # each dataObject with a given ID should be unique and singular
 _metadata_object_id_pile = { # mapping from asset's keys to manifest XML IDs
@@ -35,6 +45,7 @@ _raster_suffixes = ( # for validation
     'B01.jp2', 'B02.jp2', 'B03.jp2', 'B04.jp2', 'B05.jp2', 'B06.jp2', 'B07.jp2',
     'B08.jp2', 'B8A.jp2', 'B09.jp2', 'B10.jp2', 'B11.jp2', 'B12.jp2',
 )
+
 
 def get_url_for_object_id(path_prefix, manifest_root, data_object_id):
     """Locates the given dataObject ID and returns the relative file path for it.
@@ -81,16 +92,19 @@ def save_asset_json(destination_path, proto_asset):
     """Take the output from find_asset_keys and finalize it, saving to a json file."""
     sentinel2Asset.download_gs(destination_path, proto_asset)
 
-# sample fn inputs
-local_asset_path = 'S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_gs.json'
-path_prefix = 'tiles/56/C/MB/S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE'
-manifest_path = './tiles_56_C_MB_S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_manifest.safe'
 
-with open(manifest_path, 'r') as fo:
-    content = fo.read()
+if __name__ == '__main__':
+    """This is a test execution and needs a manifest.safe file:"""
+    # sample fn inputs
+    local_asset_path = 'S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_gs.json'
+    path_prefix = 'tiles/56/C/MB/S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE'
+    manifest_path = './tiles_56_C_MB_S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_manifest.safe'
 
-proto_asset = find_asset_keys(content, path_prefix, 35.3) # made-up cloud cover
-save_asset_json(local_asset_path, proto_asset)
+    with open(manifest_path, 'r') as fo:
+        content = fo.read()
 
-print("GOT URLS:")
-pprint(proto_asset)
+    proto_asset = find_asset_keys(content, path_prefix, 35.3) # made-up cloud cover
+    save_asset_json(local_asset_path, proto_asset)
+
+    print("GOT URLS:")
+    pprint(proto_asset)
