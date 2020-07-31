@@ -126,7 +126,7 @@ def fetch_assets_to_s3(tiles, dates, pcloud, csv_path, bucket):
 
     sentinel2Data.archive_assets(os.path.join(s2_repo, 'stage'))
 
-    for root, _, files in os.walk(s2_repo):
+    for root, _, files in os.walk(os.path.join(s2_repo, 'tiles')):
         for f in files:
             full_path = os.path.join(root, f)
             if os.path.isfile(full_path):
