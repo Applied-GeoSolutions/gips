@@ -136,24 +136,29 @@ def fetch_assets_to_s3(tiles, dates, pcloud, bucket):
                 bucket.upload_file(full_path, prefix)
 
 
+def build_asset_from_base_url(base_url, cloud_cover_pct, destination_path):
+    """Build a sentinel-2 L1CGS asset json file and save it to the given path.
+
+    The base_url identifies a specific asset; its manifest.safe is read from
+    the cloud to fetch needed content for the asset file. cloud_cover_pct is
+    likewise stored in the file.
+    """
+    content = get_manifest_content(base_url)
+    path_prefix = urlparse(base_url).path.lstrip('/')
+    proto_asset = find_asset_keys(content, path_prefix, cloud_cover_pct)
+    save_asset_json(destination_path, proto_asset)
+    return proto_asset
+
+
 def test_execution():
     """Uses a hardcoded asset choice to create an asset and save it locally."""
     # sample fn inputs
     local_asset_path = 'S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_gs.json'
-    path_prefix = 'tiles/56/C/MB/S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE'
-
-    #### use this bit to avoid using http fetch of manifest:
-    # manifest_path = './tiles_56_C_MB_S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE_manifest.safe'
-    # with open(manifest_path, 'r') as fo:
-    #     content = fo.read()
-    #### otherwise use this bit:
+    # path_prefix = 'tiles/56/C/MB/S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE'
     base_url = ('gs://gcp-public-data-sentinel-2/tiles/56/C/MB/'
                 'S2B_MSIL1C_20181202T213359_N0207_R057_T56CMB_20181202T222246.SAFE')
-    content = get_manifest_content(base_url)
-
-    proto_asset = find_asset_keys(content, path_prefix, 35.3) # made-up cloud cover
-    save_asset_json(local_asset_path, proto_asset)
-
+    # made up cloud cover:
+    proto_asset = build_asset_from_base_url(base_url, 35.3, local_asset_path)
     print("GOT URLS:")
     pprint(proto_asset)
 
