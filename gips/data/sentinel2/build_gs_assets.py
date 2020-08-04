@@ -34,19 +34,19 @@ _metadata_object_id_pile = { # mapping from asset's keys to manifest XML IDs
 _raster_object_id_pile = (
     # respects raster order of 1 through 8, then 8A, then the rest
     # (I have no idea what this naming scheme is meant to represent):
-    'IMG_DATA_Band_60m_1_Tile\d_Data',
-    'IMG_DATA_Band_10m_1_Tile\d_Data',
-    'IMG_DATA_Band_10m_2_Tile\d_Data',
-    'IMG_DATA_Band_10m_3_Tile\d_Data',
-    'IMG_DATA_Band_20m_1_Tile\d_Data',
-    'IMG_DATA_Band_20m_2_Tile\d_Data',
-    'IMG_DATA_Band_20m_3_Tile\d_Data',
-    'IMG_DATA_Band_10m_4_Tile\d_Data',
-    'IMG_DATA_Band_20m_4_Tile\d_Data', # band 8A, the LUNATIC BAND
-    'IMG_DATA_Band_60m_2_Tile\d_Data',
-    'IMG_DATA_Band_60m_3_Tile\d_Data',
-    'IMG_DATA_Band_20m_5_Tile\d_Data',
-    'IMG_DATA_Band_20m_6_Tile\d_Data',
+    'IMG_DATA_Band_60m_1_Tile\d+_Data',
+    'IMG_DATA_Band_10m_1_Tile\d+_Data',
+    'IMG_DATA_Band_10m_2_Tile\d+_Data',
+    'IMG_DATA_Band_10m_3_Tile\d+_Data',
+    'IMG_DATA_Band_20m_1_Tile\d+_Data',
+    'IMG_DATA_Band_20m_2_Tile\d+_Data',
+    'IMG_DATA_Band_20m_3_Tile\d+_Data',
+    'IMG_DATA_Band_10m_4_Tile\d+_Data',
+    'IMG_DATA_Band_20m_4_Tile\d+_Data', # band 8A, the LUNATIC BAND
+    'IMG_DATA_Band_60m_2_Tile\d+_Data',
+    'IMG_DATA_Band_60m_3_Tile\d+_Data',
+    'IMG_DATA_Band_20m_5_Tile\d+_Data',
+    'IMG_DATA_Band_20m_6_Tile\d+_Data',
 )
 
 _raster_suffixes = ( # for validation
@@ -104,7 +104,7 @@ def find_asset_keys(manifest_content, path_prefix, tile, cloud_cover_pct):
         keys[key] = get_url_for_object_id(path_prefix, manifest_root, object_id)
 
     keys['tile-md'] = get_url_for_object_id(
-        path_prefix, manifest_root, 'S2_Level-1C_Tile\d_Metadata', tile)
+        path_prefix, manifest_root, 'S2_Level-1C_Tile\d+_Metadata', tile)
     return keys
 
 
