@@ -2,6 +2,7 @@
 
 import os
 from pprint import pprint
+import re
 from xml.etree import ElementTree
 from urllib.parse import urlparse
 
@@ -33,19 +34,19 @@ _metadata_object_id_pile = { # mapping from asset's keys to manifest XML IDs
 _raster_object_id_pile = (
     # respects raster order of 1 through 8, then 8A, then the rest
     # (I have no idea what this naming scheme is meant to represent):
-    'IMG_DATA_Band_60m_1_Tile*_Data',
-    'IMG_DATA_Band_10m_1_Tile*_Data',
-    'IMG_DATA_Band_10m_2_Tile*_Data',
-    'IMG_DATA_Band_10m_3_Tile*_Data',
-    'IMG_DATA_Band_20m_1_Tile*_Data',
-    'IMG_DATA_Band_20m_2_Tile*_Data',
-    'IMG_DATA_Band_20m_3_Tile*_Data',
-    'IMG_DATA_Band_10m_4_Tile*_Data',
-    'IMG_DATA_Band_20m_4_Tile*_Data', # band 8A, the LUNATIC BAND
-    'IMG_DATA_Band_60m_2_Tile*_Data',
-    'IMG_DATA_Band_60m_3_Tile*_Data',
-    'IMG_DATA_Band_20m_5_Tile*_Data',
-    'IMG_DATA_Band_20m_6_Tile*_Data',
+    'IMG_DATA_Band_60m_1_Tile\d_Data',
+    'IMG_DATA_Band_10m_1_Tile\d_Data',
+    'IMG_DATA_Band_10m_2_Tile\d_Data',
+    'IMG_DATA_Band_10m_3_Tile\d_Data',
+    'IMG_DATA_Band_20m_1_Tile\d_Data',
+    'IMG_DATA_Band_20m_2_Tile\d_Data',
+    'IMG_DATA_Band_20m_3_Tile\d_Data',
+    'IMG_DATA_Band_10m_4_Tile\d_Data',
+    'IMG_DATA_Band_20m_4_Tile\d_Data', # band 8A, the LUNATIC BAND
+    'IMG_DATA_Band_60m_2_Tile\d_Data',
+    'IMG_DATA_Band_60m_3_Tile\d_Data',
+    'IMG_DATA_Band_20m_5_Tile\d_Data',
+    'IMG_DATA_Band_20m_6_Tile\d_Data',
 )
 
 _raster_suffixes = ( # for validation
@@ -61,15 +62,16 @@ def get_url_for_object_id(path_prefix, manifest_root, data_object_id, tile=None)
     manifest xml file stored with each sentinel-2 asset. The path returned is
     the relative path to the file identified by the given dataObject ID.
     """
-    file_loc_elems = manifest_root.findall(
-        "./dataObjectSection/dataObject[@ID='{}']/byteStream/fileLocation".format(data_object_id))
     if tile:
-        for elem in file_loc_elems:
-            if tile in elem.attrib['href']:
-                file_loc_elem = elem
-                break
+        for elem in manifest_root.find('./dataObjectSection').getchildren():
+            if re.match(data_object_id, elem.get('ID')):
+                file_loc = elem.find('./byteStream/fileLocation')
+                if tile in file_loc.attrib['href']:
+                    file_loc_elem = file_loc
+                    break
     else:
-        file_loc_elem = file_loc_elems[0]
+        file_loc_elem, = manifest_root.findall(
+            "./dataObjectSection/dataObject[@ID='{}']/byteStream/fileLocation".format(data_object_id))        
     # the fileLocationElement's href attrib has the relative path (it lies and claims to be a URL):
     relative_path = file_loc_elem.attrib['href'].lstrip('./') # starts with './'
     # to do http urls in the asset:
@@ -101,7 +103,8 @@ def find_asset_keys(manifest_content, path_prefix, tile, cloud_cover_pct):
     for key, object_id in _metadata_object_id_pile.items():
         keys[key] = get_url_for_object_id(path_prefix, manifest_root, object_id)
 
-    keys['tile-md'] = get_url_for_object_id(path_prefix, manifest_root, 'S2_Level-1C_Tile*_Metadata')
+    keys['tile-md'] = get_url_for_object_id(
+        path_prefix, manifest_root, 'S2_Level-1C_Tile\d_Metadata', tile)
     return keys
 
 
@@ -173,6 +176,11 @@ def test_execution():
     proto_asset = build_asset_from_base_url(base_url, 35.3, local_asset_path)
     print("GOT URLS:")
     pprint(proto_asset)
+
+    local_asset_path_os = 'old_style_test.json'
+    base_url_os = ('gs://gcp-public-data-sentinel-2/tiles/19/N/EF/'
+                   'S2A_MSIL1C_20160503T150724_N0202_R082_T19NEF_20160504T031403.SAFE')
+    proto_asset = build_asset_from_base_url(base_url_os, 35.3, local_asset_path_os)
 
 
 if __name__ == '__main__':
