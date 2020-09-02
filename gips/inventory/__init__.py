@@ -21,6 +21,7 @@
 #   along with this program. If not, see <http://www.gnu.org/licenses/>
 ################################################################################
 
+import csv
 import sys
 import os
 from datetime import datetime as dt
@@ -220,6 +221,33 @@ class ProjectInventory(Inventory):
         filenames = [self.data[date][product] for date in dates]
         img = gippy.GeoImage(filenames)
         return img
+
+    def write_stats(self):
+        header = ['date', 'band', 'min', 'max', 'mean', 'sd', 'skew', 'count']
+        p_dates = {} # map each product to its list of valid dates
+        for date in self.dates:
+            for p in self.products(date):
+                p_dates.setdefault(p, []).append(date)
+        p_dates = {p: sorted(dl) for p, dl in p_dates.items()}
+
+        for p_type, valid_dates in p_dates.items():
+            stats_fn = os.path.join(self.projdir, p_type + '_stats.txt')
+            with open(stats_fn, 'w') as stats_fo:
+                sf = getattr(utils.settings(), 'STATS_FORMAT', {})
+                writer = csv.writer(stats_fo, **sf)
+                writer.writerow(header)
+
+                # print date, band description, and stats
+                for date in valid_dates:
+                    img = self[date].open(p_type)
+                    date_str = date.strftime('%Y-%j')
+                    utils.verbose_out('Computing stats for {} {}'.format(
+                        p_type, date_str), 2)
+                    for b in img:
+                        stats = [str(s) for s in b.stats()]
+                        writer.writerow(
+                            [date_str, b.description()] + stats)
+                    img = None
 
 
 class DataInventory(Inventory):
