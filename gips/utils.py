@@ -451,7 +451,7 @@ def extents2geojson(spatial_extents):
             tile_geom = shapely.wkt.loads(tile_feat.wkt_geometry())
             tile_geoms.append(shapely.ops.transform(project, tile_geom))
             del tiles_vector
-        return shapely.ops.unary_union(tile_geoms).__geo_interface__
+    return shapely.ops.unary_union(tile_geoms).__geo_interface__
 
 
 def crop2vector(img, vector):
