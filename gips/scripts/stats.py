@@ -43,38 +43,11 @@ def main():
     utils.gips_script_setup(stop_on_error=args.stop_on_error)
     print(title)
 
-    # TODO - check that at least 1 of filemask or pmask is supplied
-    header = ['date', 'band', 'min', 'max', 'mean', 'sd', 'skew', 'count']
-
     with utils.error_handler():
         for projdir in args.projdir:
             VerboseOut('Stats for Project directory: %s' % projdir, 1)
             inv = ProjectInventory(projdir, args.products)
-
-            p_dates = {} # map each product to its list of valid dates
-            for date in inv.dates:
-                for p in inv.products(date):
-                    p_dates.setdefault(p, []).append(date)
-            p_dates = {p: sorted(dl) for p, dl in p_dates.items()}
-
-            for p_type, valid_dates in p_dates.items():
-                stats_fn = os.path.join(projdir, p_type + '_stats.txt')
-                with open(stats_fn, 'w') as stats_fo:
-                    sf = getattr(utils.settings(), 'STATS_FORMAT', {})
-                    writer = csv.writer(stats_fo, **sf)
-                    writer.writerow(header)
-
-                    # print date, band description, and stats
-                    for date in valid_dates:
-                        img = inv[date].open(p_type)
-                        date_str = date.strftime('%Y-%j')
-                        utils.verbose_out('Computing stats for {} {}'.format(
-                                p_type, date_str), 2)
-                        for b in img:
-                            stats = [str(s) for s in b.stats()]
-                            writer.writerow(
-                                    [date_str, b.description()] + stats)
-                        img = None
+            inv.write_stats()
 
     utils.gips_exit() # produce a summary error report then quit with a proper exit status
 
