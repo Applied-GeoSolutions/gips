@@ -97,7 +97,6 @@ class ardAsset(gips.data.core.CloudCoverAsset):
             'sensors': ['LT5', 'LE7', 'LC8'],
             'pattern': _c1_base_pattern + r'ST_\.tar$',
             'latency': _latency,
-            'source': 'usgs',
         },
     }
 
