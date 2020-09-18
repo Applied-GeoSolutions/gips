@@ -79,7 +79,7 @@ class ardAsset(gips.data.core.CloudCoverAsset):
         }
     }
 
-    _c1_base_pattern = (
+    _base_pattern = (
         r'^L(?P<sensor>\w)(?P<satellite>\d{2})_CU_(?P<pathrow>\d{6})'
         r'_(?P<acq_date>\d{8})_(?P<processing_date>\d{8})'
         r'_(?P<coll_num>C\d{2})_(?P<version>V\d{2})_'
@@ -89,7 +89,7 @@ class ardAsset(gips.data.core.CloudCoverAsset):
     _assets = {
         'ST': {
             'sensors': ['LT5', 'LE7', 'LC8'],
-            'pattern': _c1_base_pattern + r'ST\.tar$',
+            'pattern': _base_pattern + r'ST\.tar$',
             'latency': _latency,
         },
     }
@@ -218,7 +218,7 @@ class ardAsset(gips.data.core.CloudCoverAsset):
 
     @classmethod
     def download(cls, a_type, download_fp, scene_id, dataset, **ignored):
-        """Fetches the C1 asset defined by the arguments."""
+        """Fetches the ARD asset defined by the arguments."""
         stage_dir = cls.Repository.path('stage')
         api_key = cls.ee_login()
         from usgs import api
