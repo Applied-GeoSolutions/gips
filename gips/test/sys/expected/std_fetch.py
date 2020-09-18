@@ -411,5 +411,10 @@ expectations = collections.OrderedDict([
      'sha256',
      'bcc67ed9b261d7a23e519f2127334d59346c676b3f70dba13b3804f760df0c4a')],
  ),
-    ('sentinel1', sentinel1_fetch.expectations,),
+ ('sentinel1', sentinel1_fetch.expectations,),
+ ('ard',
+  [('ard/tiles/030005/20200901/LC08_CU_030005_20200901_20200908_C01_V01_ST.tar',
+    'hash',
+    'sha256',
+    'acb90011d154efc705b07ee025e5605e96e6eaf1a0e30379bc48ace4293d7e94')]),
 ])
