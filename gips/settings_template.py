@@ -64,6 +64,11 @@ REPOS = {
     'aod': {
         'repository': '$TLD/aod',
     },
+    'ard': {
+        'repository': '$TLD/ard',
+        'username': USGS_USER,
+        'password': USGS_PASS,
+    },
     'landsat': {
         'repository': '$TLD/landsat',
         # Landsat specific settings
