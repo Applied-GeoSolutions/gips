@@ -127,26 +127,19 @@ def get_manifest_content(base_url):
     return r.text
 
 
-def fetch_assets_to_s3(tiles, dates, pcloud, csv_path, bucket):
+def fetch_assets_to_repo(tiles, dates, pcloud, csv_path):
+    """This effectively emulates the sentinel2Asset.fetch() method.
+    It shouldn't take much to add this as a "source" option for
+    said class.
+    """
     from .query_csv import make_assets_from_query
 
     s2_repo = sentinel2Asset.get_setting('repository')
     s2_stage = os.path.join(s2_repo, 'stage')
-    bucket = boto3.resource('s3').Bucket(bucket)
 
     make_assets_from_query(tiles, *dates, pcloud, csv_path, s2_stage)
 
     sentinel2Data.archive_assets(os.path.join(s2_repo, 'stage'))
-
-    for root, _, files in os.walk(os.path.join(s2_repo, 'tiles')):
-        for f in files:
-            full_path = os.path.join(root, f)
-            if os.path.isfile(full_path):
-                prefix = full_path.replace(
-                    s2_repo.replace('sentinel2', ''),
-                    ''
-                ).lstrip("/")
-                bucket.upload_file(full_path, prefix)
 
 
 def build_asset_from_base_url(base_url, cloud_cover_pct, destination_path):
