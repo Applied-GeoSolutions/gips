@@ -278,4 +278,5 @@ class ardData(CloudCoverData):
                 os.path.join(temp_dir, product_name),
                 os.path.join(temp_dir, out_name)
             )
-            self.archive_temp_path(fname)
+            archived_fp = self.archive_temp_path(fname)
+            self.AddFile(asset.sensor, pr, archived_fp)
