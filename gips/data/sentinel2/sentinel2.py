@@ -272,9 +272,11 @@ class sentinel2Asset(gips.data.core.CloudCoverAsset,
         self.date = datetime.date(*[int(i) for i in match.group('year', 'mon', 'day')])
         self.time = datetime.time(*[int(i) for i in match.group('hour', 'min', 'sec')])
         self.style_res = self.get_style_regexes(self.style, self.tile)
-        self._version = int(''.join(
-            match.group('pyear', 'pmon', 'pday', 'phour', 'pmin', 'psec')
-        ))
+        self._version = int(
+            ('' if self.style == self.ds_style else '1'
+            ) + ''.join(
+                match.group('pyear', 'pmon', 'pday', 'phour', 'pmin', 'psec')
+            ))
         self.meta = {} # for caching asset metadata values
         self.tile_meta = None # tile metadata; dict was not good for this
         # sometimes assets are instantiated but no file is present
