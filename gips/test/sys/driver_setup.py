@@ -20,6 +20,7 @@ STD_ARGS = {
     'prism': ('prism', '-s', nh_shp, '-d', '1982-12-01,1982-12-03', '-v4'),
     'cdl': ('cdl', '-s', nh_shp, '-d', '2015', '--days', '1,1', '-t', 'NH', '-v4'),
     'landsat': ('landsat', '-s', nh_shp, '-d', '2017-08-01', '-v4'),
+    'ard': ('ard', '-s', nh_shp, '-d', '2020-09-01,2020-9-02', '-v4'),
     # Here down, not NH shapefile:
     'aod': ('aod', '-s', util.NE_SHP_PATH, '-d', '2017-004', '-v4'),
     # --overwrite prevents re-use of extant product files to help stabilize
