@@ -81,7 +81,7 @@ setup(
         # this format doesn't work with the old pip3 included with ubuntu; to fix it, probably
         # don't install ubuntu's pip3 and instead do: https://pip.pypa.io/en/stable/installing/
         'rios @ https://github.com/ubarsc/rios/releases/download/rios-1.4.6/rios-1.4.6.zip#egg=rios-1.4.6',
-        'python-fmask @ https://github.com/ubarsc/python-fmask/releases/download/pythonfmask-0.5.2/python-fmask-0.5.2.tar.gz#egg=python-fmask-0.5.2'
+        'python-fmask @ https://github.com/ubarsc/python-fmask/releases/download/pythonfmask-0.5.2/python-fmask-0.5.2.tar.gz#egg=python-fmask-0.5.2',
         'usgs', # 0.2.1 known to work
         'backports.functools_lru_cache',
         'backoff',
