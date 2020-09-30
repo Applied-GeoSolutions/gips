@@ -57,10 +57,17 @@ class ardRepository(Repository):
 
 class ardAsset(gips.data.core.CloudCoverAsset):
     Repository = ardRepository
+    _lt4_startdate = date(1982, 7, 1)
     _lt5_startdate = date(1984, 3, 1)
     _le7_startdate = date(1999, 4, 15)
     _lc8_startdate = date(2013, 4, 1)
     _sensors = {
+        'LT4': {
+            'code': 'LT04',
+            'description': 'Landsat 4',
+            'startdate': _lt4_startdate,
+            'enddate': date(1993,12,31),
+        },
         'LT5': {
             'code': 'LT05',
             'description': 'Landsat 5',
@@ -88,7 +95,7 @@ class ardAsset(gips.data.core.CloudCoverAsset):
     _latency = 0
     _assets = {
         'ST': {
-            'sensors': ['LT5', 'LE7', 'LC8'],
+            'sensors': ['LT4', 'LT5', 'LE7', 'LC8'],
             'pattern': _base_pattern + r'ST\.tar$',
             'latency': _latency,
         },
@@ -242,12 +249,11 @@ class ardData(CloudCoverData):
     Asset = ardAsset
     inline_archive = True
 
-    _lt5_startdate = date(1984, 3, 1)
     _products = {
         'st': {
             'description': 'Surface Temperature',
             'assets': ['ST'],
-            'startdate': Asset._lt5_startdate,
+            'startdate': Asset._lt4_startdate,
             'latency': Asset._latency,
         },
     }
