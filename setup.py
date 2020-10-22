@@ -66,7 +66,7 @@ setup(
         # because requests is a diva and won't leave its trailer otherwise:
         'urllib3[secure]',
         'requests',
-        'django==1.10',
+        'django==1.11',
         'netCDF4',
         'boto3<2', # let this ride for v1.x  ircwaves has tested in production (yay!)
         'pyproj',
