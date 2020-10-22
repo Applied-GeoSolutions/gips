@@ -64,12 +64,13 @@ setup(
         # better to install here but it seems to cause apt conflicts:  'GDAL', 'numpy',
         'six>=1.9.0',
         # because requests is a diva and won't leave its trailer otherwise:
-        'urllib3[secure]<1.24',
+        'urllib3[secure]',
         'requests',
         'django==1.10',
         'netCDF4',
         'boto3<2', # let this ride for v1.x  ircwaves has tested in production (yay!)
         'pyproj',
+        'cryptography>=2.8',
         'Py6S>=1.7.0',
         'shapely',
         'gippy>=1.0',
