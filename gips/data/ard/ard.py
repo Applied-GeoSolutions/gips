@@ -256,6 +256,12 @@ class ardData(CloudCoverData):
             'startdate': Asset._lt4_startdate,
             'latency': Asset._latency,
         },
+        'stqa': {
+            'description': 'Surface Temperature',
+            'assets': ['ST'],
+            'startdate': Asset._lt4_startdate,
+            'latency': Asset._latency,
+        },
     }
 
     @Data.proc_temp_dir_manager
@@ -272,11 +278,13 @@ class ardData(CloudCoverData):
         for pr in products.products:
             # ARD is a product/asset pair, so always use the first (only) asset
             asset = self.assets[self._products[pr]['assets'][0].upper()]
-            product_name = os.path.basename(
+            name_parts = os.path.basename(
                 asset.filename
-            ).split('.')[0] + ".tif"
+            ).split('.')[0].split('_')
+            name_parts[-1] = pr.upper()
+            product_name = '_'.join(name_parts) + ".tif"
 
-            fname = self.temp_product_filename(asset.sensor, 'st')
+            fname = self.temp_product_filename(asset.sensor, pr)
             temp_dir = os.path.dirname(fname)
             out_name = os.path.basename(fname)
             tarfile.open(asset.filename).extractall(path=temp_dir)
