@@ -34,6 +34,8 @@ import gips.data.core
 
 from gips.utils import settings
 from gips import utils
+from gippy import GeoImage
+import numpy as np
 import homura
 
 __author__ = "Rick Emery <remery@ags.io>"
@@ -257,12 +259,38 @@ class ardData(CloudCoverData):
             'latency': Asset._latency,
         },
         'stqa': {
-            'description': 'Surface Temperature',
+            'description': 'Surface Temperature QA',
+            'assets': ['ST'],
+            'startdate': Asset._lt4_startdate,
+            'latency': Asset._latency,
+        },
+        'stcloudmask': {
+            'description': 'Surface Temperature Cloud Mask',
+            'assets': ['ST'],
+            'startdate': Asset._lt4_startdate,
+            'latency': Asset._latency,
+        },
+        'stlandmask': {
+            'description': 'Surface Temperature Water Mask',
             'assets': ['ST'],
             'startdate': Asset._lt4_startdate,
             'latency': Asset._latency,
         },
     }
+
+    _masks = {
+        'stcloudmask': 0b101000, # Bit 3 is cloud, 5 is shadow
+        'stlandmask': 0b100 # Bit 2 is water
+    }
+
+    def process_cloudmask(self, temp_dir, fname, product_name):
+        src_image = GeoImage(os.path.join(temp_dir, product_name))
+        qa_nparray = src_image[0].read()
+        
+        # Cloud is bit 5, cloud shadow bit 3
+        mask = (qa_nparray & 0b0101000)
+        imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
+        imgout[0].write(mask)
 
     @Data.proc_temp_dir_manager
     def process(self, products=None, *args, **kwargs):
@@ -281,16 +309,32 @@ class ardData(CloudCoverData):
             name_parts = os.path.basename(
                 asset.filename
             ).split('.')[0].split('_')
-            name_parts[-1] = pr.upper()
-            product_name = '_'.join(name_parts) + ".tif"
 
             fname = self.temp_product_filename(asset.sensor, pr)
             temp_dir = os.path.dirname(fname)
             out_name = os.path.basename(fname)
             tarfile.open(asset.filename).extractall(path=temp_dir)
-            os.rename(
-                os.path.join(temp_dir, product_name),
-                os.path.join(temp_dir, out_name)
-            )
+
+            if pr == 'stcloudmask' or pr == 'stlandmask':
+                name_parts[-1] = 'PIXELQA'
+                product_name = '_'.join(name_parts) + ".tif"
+
+                src_image = GeoImage(os.path.join(temp_dir, product_name))
+                qa_nparray = src_image[0].read()
+                mask = (qa_nparray & self._masks[pr]) > 0
+                print(mask)
+                if pr == 'stlandmask':
+                    mask = np.invert(mask)
+                    print(mask)
+                imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
+                imgout[0].write(mask.astype(np.uint16))
+                imgout.set_nodata(0)
+            else:
+                name_parts[-1] = pr.upper()
+                product_name = '_'.join(name_parts) + ".tif"
+                os.rename(
+                    os.path.join(temp_dir, product_name),
+                    os.path.join(temp_dir, out_name)
+                )
             archived_fp = self.archive_temp_path(fname)
             self.AddFile(asset.sensor, pr, archived_fp)
