@@ -322,10 +322,8 @@ class ardData(CloudCoverData):
                 src_image = GeoImage(os.path.join(temp_dir, product_name))
                 qa_nparray = src_image[0].read()
                 mask = (qa_nparray & self._masks[pr]) > 0
-                print(mask)
                 if pr == 'stlandmask':
                     mask = np.invert(mask)
-                    print(mask)
                 imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
                 imgout[0].write(mask.astype(np.uint16))
                 imgout.set_nodata(0)
