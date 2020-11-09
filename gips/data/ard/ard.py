@@ -313,7 +313,14 @@ class ardData(CloudCoverData):
             fname = self.temp_product_filename(asset.sensor, pr)
             temp_dir = os.path.dirname(fname)
             out_name = os.path.basename(fname)
-            tarfile.open(asset.filename).extractall(path=temp_dir)
+            try:
+                tarfile.open(asset.filename).extractall(path=temp_dir)
+            except Exception as e:
+                # Add filename to the exception
+                raise Exception("Unabel to open {}: {}".format(
+                    asset.filename,
+                    e
+                ))
 
             if pr in ['stcloudmask', 'stlandmask']:
                 name_parts[-1] = 'PIXELQA'
@@ -324,7 +331,14 @@ class ardData(CloudCoverData):
                 mask = (qa_nparray & self._masks[pr]) > 0
                 if pr == 'stlandmask':
                     mask = np.invert(mask)
-                imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
+                try:
+                    imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
+                except Exception as e:
+                    # Add file name/path to the exception
+                    raise Exception("Unable to create GeoImage {}: {}".format(
+                        fname,
+                        e
+                    ))
                 imgout[0].write(mask.astype(np.uint16))
                 imgout.set_nodata(0)
                 archived_fp = self.archive_temp_path(fname)
