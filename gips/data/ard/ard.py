@@ -315,7 +315,7 @@ class ardData(CloudCoverData):
             out_name = os.path.basename(fname)
             tarfile.open(asset.filename).extractall(path=temp_dir)
 
-            if pr == 'stcloudmask' or pr == 'stlandmask':
+            if pr in ['stcloudmask', 'stlandmask']:
                 name_parts[-1] = 'PIXELQA'
                 product_name = '_'.join(name_parts) + ".tif"
 
@@ -329,12 +329,14 @@ class ardData(CloudCoverData):
                 imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
                 imgout[0].write(mask.astype(np.uint16))
                 imgout.set_nodata(0)
-            else:
+                archived_fp = self.archive_temp_path(fname)
+                self.AddFile(asset.sensor, pr, archived_fp)
+            elif pr in ['st', 'stqa']:
                 name_parts[-1] = pr.upper()
                 product_name = '_'.join(name_parts) + ".tif"
                 os.rename(
                     os.path.join(temp_dir, product_name),
                     os.path.join(temp_dir, out_name)
                 )
-            archived_fp = self.archive_temp_path(fname)
-            self.AddFile(asset.sensor, pr, archived_fp)
+                archived_fp = self.archive_temp_path(fname)
+                self.AddFile(asset.sensor, pr, archived_fp)
