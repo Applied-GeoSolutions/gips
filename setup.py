@@ -69,7 +69,7 @@ setup(
         'django==1.11',
         'netCDF4',
         'boto3<2', # let this ride for v1.x  ircwaves has tested in production (yay!)
-        'pyproj',
+        'pyproj<3',  # TODO: blocked due to initial pyproj==3.0 release issues
         'cryptography>=2.8',
         'Py6S>=1.7.0',
         'shapely',

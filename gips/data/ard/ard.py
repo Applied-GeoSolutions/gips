@@ -34,6 +34,8 @@ import gips.data.core
 
 from gips.utils import settings
 from gips import utils
+from gippy import GeoImage
+import numpy as np
 import homura
 
 __author__ = "Rick Emery <remery@ags.io>"
@@ -256,7 +258,39 @@ class ardData(CloudCoverData):
             'startdate': Asset._lt4_startdate,
             'latency': Asset._latency,
         },
+        'stqa': {
+            'description': 'Surface Temperature QA',
+            'assets': ['ST'],
+            'startdate': Asset._lt4_startdate,
+            'latency': Asset._latency,
+        },
+        'stcloudmask': {
+            'description': 'Surface Temperature Cloud Mask',
+            'assets': ['ST'],
+            'startdate': Asset._lt4_startdate,
+            'latency': Asset._latency,
+        },
+        'stlandmask': {
+            'description': 'Surface Temperature Water Mask',
+            'assets': ['ST'],
+            'startdate': Asset._lt4_startdate,
+            'latency': Asset._latency,
+        },
     }
+
+    _masks = {
+        'stcloudmask': 0b101000, # Bit 3 is cloud, 5 is shadow
+        'stlandmask': 0b100 # Bit 2 is water
+    }
+
+    def process_cloudmask(self, temp_dir, fname, product_name):
+        src_image = GeoImage(os.path.join(temp_dir, product_name))
+        qa_nparray = src_image[0].read()
+        
+        # Cloud is bit 5, cloud shadow bit 3
+        mask = (qa_nparray & 0b0101000)
+        imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
+        imgout[0].write(mask)
 
     @Data.proc_temp_dir_manager
     def process(self, products=None, *args, **kwargs):
@@ -272,17 +306,49 @@ class ardData(CloudCoverData):
         for pr in products.products:
             # ARD is a product/asset pair, so always use the first (only) asset
             asset = self.assets[self._products[pr]['assets'][0].upper()]
-            product_name = os.path.basename(
+            name_parts = os.path.basename(
                 asset.filename
-            ).split('.')[0] + ".tif"
+            ).split('.')[0].split('_')
 
-            fname = self.temp_product_filename(asset.sensor, 'st')
+            fname = self.temp_product_filename(asset.sensor, pr)
             temp_dir = os.path.dirname(fname)
             out_name = os.path.basename(fname)
-            tarfile.open(asset.filename).extractall(path=temp_dir)
-            os.rename(
-                os.path.join(temp_dir, product_name),
-                os.path.join(temp_dir, out_name)
-            )
-            archived_fp = self.archive_temp_path(fname)
-            self.AddFile(asset.sensor, pr, archived_fp)
+            try:
+                tarfile.open(asset.filename).extractall(path=temp_dir)
+            except Exception as e:
+                # Add filename to the exception
+                raise Exception("Unabel to open {}: {}".format(
+                    asset.filename,
+                    e
+                ))
+
+            if pr in ['stcloudmask', 'stlandmask']:
+                name_parts[-1] = 'PIXELQA'
+                product_name = '_'.join(name_parts) + ".tif"
+
+                src_image = GeoImage(os.path.join(temp_dir, product_name))
+                qa_nparray = src_image[0].read()
+                mask = (qa_nparray & self._masks[pr]) > 0
+                if pr == 'stlandmask':
+                    mask = np.invert(mask)
+                try:
+                    imgout = GeoImage.create_from(src_image, fname, 1, 'uint16')
+                except Exception as e:
+                    # Add file name/path to the exception
+                    raise Exception("Unable to create GeoImage {}: {}".format(
+                        fname,
+                        e
+                    ))
+                imgout[0].write(mask.astype(np.uint16))
+                imgout.set_nodata(0)
+                archived_fp = self.archive_temp_path(fname)
+                self.AddFile(asset.sensor, pr, archived_fp)
+            elif pr in ['st', 'stqa']:
+                name_parts[-1] = pr.upper()
+                product_name = '_'.join(name_parts) + ".tif"
+                os.rename(
+                    os.path.join(temp_dir, product_name),
+                    os.path.join(temp_dir, out_name)
+                )
+                archived_fp = self.archive_temp_path(fname)
+                self.AddFile(asset.sensor, pr, archived_fp)
