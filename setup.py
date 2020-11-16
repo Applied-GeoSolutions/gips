@@ -62,27 +62,27 @@ setup(
     },
     install_requires=[
         # better to install here but it seems to cause apt conflicts:  'GDAL', 'numpy',
-        'six>=1.9.0',
+        'six',
         # because requests is a diva and won't leave its trailer otherwise:
-        'urllib3[secure]',
+        'urllib3',
         'requests',
-        'django==1.11',
+        'django',
         'netCDF4',
-        'boto3<2', # let this ride for v1.x  ircwaves has tested in production (yay!)
-        'pyproj<3',  # TODO: blocked due to initial pyproj==3.0 release issues
-        'cryptography>=2.8',
-        'Py6S>=1.7.0',
+        'boto3', # let this ride for v1.x  ircwaves has tested in production (yay!)
+        'pyproj',  # TODO: blocked due to initial pyproj==3.0 release issues
+        'cryptography',
+        'Py6S',
         'shapely',
-        'gippy>=1.0',
-        'homura==0.1.3',
+        'gippy',
+        'homura',
         'python-dateutil',
-        'pydap==3.2',
-        'pysolar==0.6',
-        'dbfread==2.0.7',
+        'pydap',
+        'pysolar',
+        'dbfread',
         # this format doesn't work with the old pip3 included with ubuntu; to fix it, probably
         # don't install ubuntu's pip3 and instead do: https://pip.pypa.io/en/stable/installing/
-        'rios @ https://github.com/ubarsc/rios/releases/download/rios-1.4.6/rios-1.4.6.zip#egg=rios-1.4.6',
-        'python-fmask @ https://github.com/ubarsc/python-fmask/releases/download/pythonfmask-0.5.2/python-fmask-0.5.2.tar.gz#egg=python-fmask-0.5.2',
+        'rios',
+        'python-fmask',
         'usgs', # 0.2.1 known to work
         'backports.functools_lru_cache',
         'backoff',
