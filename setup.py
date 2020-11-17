@@ -65,33 +65,9 @@ setup(
         'six',
         # because requests is a diva and won't leave its trailer otherwise:
         'urllib3',
-        'requests',
-        'django',
-        'netCDF4',
-        'boto3', # let this ride for v1.x  ircwaves has tested in production (yay!)
-        'pyproj',  # TODO: blocked due to initial pyproj==3.0 release issues
-        'cryptography',
-        'Py6S',
-        'shapely',
-        'gippy',
-        'homura',
-        'python-dateutil',
-        'pydap',
-        'pysolar',
-        'dbfread',
-        # this format doesn't work with the old pip3 included with ubuntu; to fix it, probably
-        # don't install ubuntu's pip3 and instead do: https://pip.pypa.io/en/stable/installing/
+        'Cython',
         'rios',
         'python-fmask',
-        'usgs', # 0.2.1 known to work
-        'backports.functools_lru_cache',
-        'backoff',
-        'geojson',
-        'fiona',
-        'rtree',
-        'progressbar',
-        'geopandas',
-        'spatialist',
     ],
     entry_points={'console_scripts': console_scripts},
     zip_safe=False,
