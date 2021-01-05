@@ -14,6 +14,3 @@ pip3 install -U "${c_url}/rios/releases/download/rios-1.4.6/rios-1.4.6.zip#egg=r
 pip3 install -U "${c_url}/python-fmask/releases/download/pythonfmask-0.5.2/python-fmask-0.5.2.tar.gz#egg=python-fmask-0.5.2"
 
 pip3 install "git+https://github.com/jonas-eberle/esa_sentinel@v0.6.1#egg=sentinel_api"
-
-# Known-good requirements
-pip3 install -r requirements_stable.txt

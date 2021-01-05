@@ -42,6 +42,9 @@ for f in glob.glob('gips/scripts/*.py'):
         script = 'gips_%s = gips.scripts.%s:main' % (name, name.lower())
         console_scripts.append(script)
 
+# Read requirements file for install_requires
+stable_reqs_file = open('requirements_stable.txt', 'r')
+stable_reqs = stable_reqs_file.read().splitlines()
 
 setup(
     name='gips',
@@ -60,15 +63,7 @@ setup(
             'data/landsat/lndortho.cps_par.ini',
         ],
     },
-    install_requires=[
-        # better to install here but it seems to cause apt conflicts:  'GDAL', 'numpy',
-        'six',
-        # because requests is a diva and won't leave its trailer otherwise:
-        'urllib3',
-        'Cython',
-        'rios',
-        'python-fmask',
-    ],
+    install_requires=stable_reqs,
     entry_points={'console_scripts': console_scripts},
     zip_safe=False,
     classifiers=[
