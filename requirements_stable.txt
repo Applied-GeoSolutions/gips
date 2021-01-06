@@ -21,6 +21,7 @@ python-fmask
 requests==2.24.0
 rios
 Rtree==0.9.4
+scipy==1.5.4
 Shapely==1.7.1
 six==1.15.0
 spatialist==0.6
