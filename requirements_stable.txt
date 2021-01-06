@@ -1,6 +1,7 @@
 backoff==1.10.0
 backports.functools-lru-cache==1.6.1
 boto3==1.16.14
+click==7.1.2
 cryptography==3.2.1
 Cython
 dbfread==2.0.7
