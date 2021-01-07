@@ -4,7 +4,7 @@
 FROM ubuntu:18.04
 
 
-ARG GIPPY_REF=1.0.4
+ARG GIPPY_REF=1.0.5
 # for develop mode using your own external gippy
 # pass --build-arg GIPPY_INSTALL_URL="--src=/ -e git+https://github.com/daganinc/gippy.git@${GIPPY_REF}#egg=gippy"
 ARG GIPPY_INSTALL_URL="https://github.com/daganinc/gippy/archive/${GIPPY_REF}.tar.gz#egg=gippy"

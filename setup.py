@@ -42,6 +42,9 @@ for f in glob.glob('gips/scripts/*.py'):
         script = 'gips_%s = gips.scripts.%s:main' % (name, name.lower())
         console_scripts.append(script)
 
+# Read requirements file for install_requires
+stable_reqs_file = open('requirements_stable.txt', 'r')
+stable_reqs = stable_reqs_file.read().splitlines()
 
 setup(
     name='gips',
@@ -60,39 +63,7 @@ setup(
             'data/landsat/lndortho.cps_par.ini',
         ],
     },
-    install_requires=[
-        # better to install here but it seems to cause apt conflicts:  'GDAL', 'numpy',
-        'six>=1.9.0',
-        # because requests is a diva and won't leave its trailer otherwise:
-        'urllib3[secure]',
-        'requests',
-        'django==1.11',
-        'netCDF4',
-        'boto3<2', # let this ride for v1.x  ircwaves has tested in production (yay!)
-        'pyproj<3',  # TODO: blocked due to initial pyproj==3.0 release issues
-        'cryptography>=2.8',
-        'Py6S>=1.7.0',
-        'shapely',
-        'gippy>=1.0',
-        'homura==0.1.3',
-        'python-dateutil',
-        'pydap==3.2',
-        'pysolar==0.6',
-        'dbfread==2.0.7',
-        # this format doesn't work with the old pip3 included with ubuntu; to fix it, probably
-        # don't install ubuntu's pip3 and instead do: https://pip.pypa.io/en/stable/installing/
-        'rios @ https://github.com/ubarsc/rios/releases/download/rios-1.4.6/rios-1.4.6.zip#egg=rios-1.4.6',
-        'python-fmask @ https://github.com/ubarsc/python-fmask/releases/download/pythonfmask-0.5.2/python-fmask-0.5.2.tar.gz#egg=python-fmask-0.5.2',
-        'usgs', # 0.2.1 known to work
-        'backports.functools_lru_cache',
-        'backoff',
-        'geojson',
-        'fiona',
-        'rtree',
-        'progressbar',
-        'geopandas',
-        'spatialist',
-    ],
+    install_requires=stable_reqs,
     entry_points={'console_scripts': console_scripts},
     zip_safe=False,
     classifiers=[
