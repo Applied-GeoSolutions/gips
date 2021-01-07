@@ -608,7 +608,7 @@ def gridded_mosaic(images, outfile, rastermask, interpolation=0):
     imgout.add_mask(mask_img[0])
     imgout.set_gain(images[0][0].gain())
     imgout.set_offset(images[0][0].offset())
-    imgout.save()
+    imgout.save(outfile)
 
 
 def vrt_mosaic(filenames, outpath, interpolation=0, res=None, rastermask=None, site=None):
