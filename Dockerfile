@@ -17,12 +17,12 @@ RUN cd /gips && ./install-sys-deps.sh && ./install-py-deps.sh
 
 ### install gippy & its dependencies suitably for developing gippy concurrently if needed
 RUN apt-get install -y swig git ssh
-RUN pip3 install $GIPPY_INSTALL_URL
+### RUN pip3 install $GIPPY_INSTALL_URL
 # at least one causes a version conflict later due to the python3-cryptography ubuntu pkg:
 RUN apt-get remove -y --auto-remove git ssh
 
 ### install gips proper
-RUN cd /gips && python3 setup.py develop && \
+RUN cd /gips && pip3 install -e . && \
     gips_config env --repos /archive --email nobody@example.com
 
 ### cleanup

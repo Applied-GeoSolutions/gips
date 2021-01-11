@@ -29,7 +29,7 @@ source install-py-deps.sh
 
 ### gips install (venv-able)
 # system install, not venv nor developer install:
-python3 setup.py install
+pip3 install .
 # TODO if this is extended to support developer and/or venv installs:
 # pip3 install -r dev_requirements.txt # if you wish to run the test suite; CF docker/
 # then one of setup.py or pip3 -e:

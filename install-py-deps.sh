@@ -7,10 +7,5 @@ set -e -v
 
 # python deps that are difficult to install with setuptools:
 pip3 install -U numpy # gippy has some kind of problem otherwise
-# see setup.py for why this is done here:
-c_url=https://github.com/ubarsc
 pip3 install Cython # This needs to be first because pip is dumb
-pip3 install -U "${c_url}/rios/releases/download/rios-1.4.6/rios-1.4.6.zip#egg=rios-1.4.6"
-pip3 install -U "${c_url}/python-fmask/releases/download/pythonfmask-0.5.2/python-fmask-0.5.2.tar.gz#egg=python-fmask-0.5.2"
 
-pip3 install "git+https://github.com/jonas-eberle/esa_sentinel@v0.6.1#egg=sentinel_api"

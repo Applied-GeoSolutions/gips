@@ -22,7 +22,8 @@ lite_mark_spec = { k: util.lite for k in [
     ('sentinel2', 'evi-toa'),
     ('prism', 'ppt', 'vrtppt'),
     ('hls', 'ndvi'),
-    ('sentinel1', 'sigma0'),
+    # disable ci for sentinel1 for now irc@2021-01-11
+    # ('sentinel1', 'sigma0'),
     ('ard', 'st'),
     #('sar', 'sign'), # TODO automate arttifact-* pytest.ini values
 ]}

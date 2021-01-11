@@ -44,7 +44,11 @@ for f in glob.glob('gips/scripts/*.py'):
 
 # Read requirements file for install_requires
 stable_reqs_file = open('requirements_stable.txt', 'r')
-stable_reqs = stable_reqs_file.read().splitlines()
+reqs = stable_reqs_file.read().splitlines()
+
+if os.environ.get('SENTINEL1', 'NO') == 'YES':
+    s1_reqs_file = open('requirements_sentinel1.txt', 'r')
+    reqs.append(s1_reqs_file.read().splitlines())
 
 setup(
     name='gips',
@@ -63,7 +67,7 @@ setup(
             'data/landsat/lndortho.cps_par.ini',
         ],
     },
-    install_requires=stable_reqs,
+    install_requires=reqs,
     entry_points={'console_scripts': console_scripts},
     zip_safe=False,
     classifiers=[

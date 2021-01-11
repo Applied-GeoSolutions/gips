@@ -24,8 +24,10 @@ apt-get update -y
 #   versions of these tools exist.
 # TODO gfortran is only needed for sixs; remove it to the sixs install script
 apt-get install -y \
-    gdal-bin libgdal-dev python-dev python3-dev python3-gdal python-gdal \
-    curl wget gfortran libgnutls28-dev git libspatialindex-dev
+        gdal-bin libgdal-dev python-dev python3-dev \
+        python3-distutils \
+        curl wget gfortran libgnutls28-dev git libspatialindex-dev 
+
 
 # needed for coregistration routines
 curl -o /usr/local/bin/ortho \
@@ -36,7 +38,17 @@ curl -o /usr/local/bin/ortho \
 # it themselves, so need to check first
 if command -v pip3 &>/dev/null; then
     echo 'pip3 found in PATH; not installing'
+    declare -i PIP_MAJ_VER=$(pip3 --version | sed -e 's/^pip \([^\.]\+\)\..*/\1/')
+    declare -i PIP_MIN_VER=$(pip3 --version | sed -e 's/^pip [^\.]\+\.\([^\.]\+\)\..*/\1/')
+    if [ ${PIP_MAJ_VER} -lt 18 -o \( ${PIP_MAJ_VER} = 18 -a ${PIP_MIN_VER} -lt 1 \) ] ;
+    then
+        echo "pip version less than 18.1"
+        exit 1
+    fi
 else
     echo 'pip3 not found in PATH; installing:'
-    apt-get install -y python3-pip
+    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
+        && python3 get-pip.py
 fi
+
+pip3 install GDAL==$(gdal-config --version)

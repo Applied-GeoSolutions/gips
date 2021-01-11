@@ -27,7 +27,7 @@ import subprocess
 import glob
 from functools import lru_cache
 
-import geopandas as gpd
+#import geopandas as gpd  # MOVED TO LOCAL IMPORT
 
 import gippy
 
@@ -181,6 +181,7 @@ class sentinel1Asset(Asset):
 
         if cls.Repository._tilefile_name is not None:
             # when -s option is used
+            import geopandas as gpd
             gdf = gpd.read_file(cls.Repository._tilefile_name)
             gdf = gdf[gdf['tileid'] == tile]
             # IMPORTANT: outfile is the name of the single tile boundaru

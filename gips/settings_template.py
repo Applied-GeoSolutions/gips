@@ -126,11 +126,11 @@ REPOS = {
     'chirps': {
         'repository': '$TLD/chirps',
     },
-    'sentinel1': {
-        'repository': '$TLD/sentinel1',
-        'username': SCIHUB_USER,
-        'password': SCIHUB_PASS,
-    },
+    # 'sentinel1': {
+    #     'repository': '$TLD/sentinel1',
+    #     'username': SCIHUB_USER,
+    #     'password': SCIHUB_PASS,
+    # },
 }
 
 
