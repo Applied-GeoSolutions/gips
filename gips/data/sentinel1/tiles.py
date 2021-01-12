@@ -13,7 +13,6 @@ from shapely import geometry, speedups
 from shapely.wkt import loads
 
 from osgeo import ogr
-import geopandas as gpd
 from rtree import index
 
 
@@ -30,6 +29,7 @@ DLAT = 0.15
 
 def write_feature(vector, outfile):
     """ make a shapefile out of a feature """
+    import geopandas as gpd
 
     wkt = vector.wkt_geometry()
     proj = vector.srs()
@@ -220,6 +220,7 @@ def make_rectangular_tilegrid(outdir, tileid, nxgrid, nygrid, tileid_attribute, 
 
 
 def make_tilegrid(shpfile, outdir, outname, tileid_pattern, tileid_attribute, append=False):
+    import geopandas as gpd
 
     gdf = gpd.read_file(shpfile)
     orig_crs = gdf.crs
