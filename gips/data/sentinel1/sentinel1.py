@@ -34,7 +34,6 @@ import gippy
 from gips.data.core import Repository, Asset, Data
 from gips import utils
 from gips.data.sentinel1.tiles import write_feature, make_tilegrid, make_rectangular_tilegrid
-import sentinel_api as api
 
 
 _asset_types = ('L1',)
@@ -162,6 +161,7 @@ class sentinel1Asset(Asset):
 
     @classmethod
     def query_esa(cls, tile, date):
+        import sentinel_api as api
 
         # use username and password for ESA DATA Hub authentication
         username = cls.get_setting('username')
