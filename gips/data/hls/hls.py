@@ -300,7 +300,7 @@ class hlsData(gips.data.core.CloudCoverData):
 
             green = src_img['Green'].read()
             red = src_img['Red'].read()
-            if 'NIR' in src_img.BandNames():
+            if 'NIR' in src_img.bandnames():
                 nir = src_img['NIR'].read()
             else:
                 nir = src_img['NIR_Narrow'].read()
