@@ -1,11 +1,9 @@
 from __future__ import print_function
 
 import os
-import sys
 import glob
 from collections import defaultdict
 
-import numpy as np
 import fiona
 from fiona.crs import from_epsg
 
@@ -13,7 +11,6 @@ from shapely import geometry, speedups
 from shapely.wkt import loads
 
 from osgeo import ogr
-from rtree import index
 
 
 speedups.enable()
@@ -38,12 +35,12 @@ def write_feature(vector, outfile):
     gdf.to_file(outfile)
 
 
-
 def extract(source, target, output, merge, buffer, buffer_after, filter, same_attrs):
     """
     extract features of source vector file that intersect or contain
     features in target vector file
     """
+    from rtree import index
     idx = index.Index()
     geoms = {}
 
