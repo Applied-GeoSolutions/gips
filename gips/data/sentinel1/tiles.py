@@ -1,11 +1,9 @@
 from __future__ import print_function
 
 import os
-import sys
 import glob
 from collections import defaultdict
 
-import numpy as np
 import fiona
 from fiona.crs import from_epsg
 
@@ -13,8 +11,6 @@ from shapely import geometry, speedups
 from shapely.wkt import loads
 
 from osgeo import ogr
-import geopandas as gpd
-from rtree import index
 
 
 speedups.enable()
@@ -30,6 +26,7 @@ DLAT = 0.15
 
 def write_feature(vector, outfile):
     """ make a shapefile out of a feature """
+    import geopandas as gpd
 
     wkt = vector.wkt_geometry()
     proj = vector.srs()
@@ -38,12 +35,12 @@ def write_feature(vector, outfile):
     gdf.to_file(outfile)
 
 
-
 def extract(source, target, output, merge, buffer, buffer_after, filter, same_attrs):
     """
     extract features of source vector file that intersect or contain
     features in target vector file
     """
+    from rtree import index
     idx = index.Index()
     geoms = {}
 
@@ -220,6 +217,7 @@ def make_rectangular_tilegrid(outdir, tileid, nxgrid, nygrid, tileid_attribute, 
 
 
 def make_tilegrid(shpfile, outdir, outname, tileid_pattern, tileid_attribute, append=False):
+    import geopandas as gpd
 
     gdf = gpd.read_file(shpfile)
     orig_crs = gdf.crs

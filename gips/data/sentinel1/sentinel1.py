@@ -27,14 +27,13 @@ import subprocess
 import glob
 from functools import lru_cache
 
-import geopandas as gpd
+#import geopandas as gpd  # MOVED TO LOCAL IMPORT
 
 import gippy
 
 from gips.data.core import Repository, Asset, Data
 from gips import utils
 from gips.data.sentinel1.tiles import write_feature, make_tilegrid, make_rectangular_tilegrid
-import sentinel_api as api
 
 
 _asset_types = ('L1',)
@@ -162,6 +161,7 @@ class sentinel1Asset(Asset):
 
     @classmethod
     def query_esa(cls, tile, date):
+        import sentinel_api as api
 
         # use username and password for ESA DATA Hub authentication
         username = cls.get_setting('username')
@@ -181,6 +181,7 @@ class sentinel1Asset(Asset):
 
         if cls.Repository._tilefile_name is not None:
             # when -s option is used
+            import geopandas as gpd
             gdf = gpd.read_file(cls.Repository._tilefile_name)
             gdf = gdf[gdf['tileid'] == tile]
             # IMPORTANT: outfile is the name of the single tile boundaru

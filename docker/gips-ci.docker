@@ -1,7 +1,9 @@
 # Builds docker image useful for CI pipeline testing; see `.gitlab-ci.yml`.
 # Meant to sit atop the image produced by Dockerfile.
 
-FROM gips-base
+ARG BASE_IMAGE=gips-base
+
+FROM $BASE_IMAGE
 
 ENV GIPS_OVERRIDE_VERSION='0.0.0-dev'
 

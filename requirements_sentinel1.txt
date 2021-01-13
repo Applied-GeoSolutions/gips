@@ -1,0 +1,5 @@
+esa_sentinel @ https://github.com/jonas-eberle/esa_sentinel/archive/v0.6.1.zip#egg=sentinel_api
+Rtree==0.9.4
+progressbar==2.5
+geopandas==0.6.3
+spatialist==0.6

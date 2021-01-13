@@ -38,7 +38,6 @@ from io import StringIO
 from backports.functools_lru_cache import lru_cache
 
 import numpy
-import pyproj
 import requests
 from requests.auth import HTTPBasicAuth
 from shapely.wkt import loads as wkt_loads
@@ -1090,24 +1089,6 @@ class sentinel2Data(gips.data.core.CloudCoverData):
             imgout.add_meta(metadata)
             archived_fp = self.archive_temp_path(temp_fp)
             self.AddFile(sensor, prod_and_args, archived_fp)
-
-
-    # this function creates a geolocation error
-    #def shrunk_bbox(self, tile):
-        #w_lon, e_lon, s_lat, n_lat = self.Repository.tile_lat_lon(tile)
-        #latlon = pyproj.Proj(init='epsg:4326')
-        #utm = pyproj.Proj(init='epsg:326{}'.format(tile[0:2]))
-
-        #w_lon_utm, s_lat_utm = pyproj.transform(latlon, utm, w_lon, s_lat)
-        #e_lon_utm, n_lat_utm = pyproj.transform(latlon, utm, e_lon, n_lat)
-
-        #lon_diff = (e_lon_utm - w_lon_utm) / 16
-        #lat_diff = (n_lat_utm - s_lat_utm) / 16
-
-        #w_lon_shrunk, s_lat_shrunk = pyproj.transform(utm, latlon, w_lon_utm + lon_diff, s_lat_utm + lat_diff)
-        #e_lon_shrunk, n_lat_shrunk = pyproj.transform(utm, latlon, e_lon_utm - lon_diff, n_lat_utm - lat_diff)
-
-        #return w_lon_shrunk, e_lon_shrunk, s_lat_shrunk, n_lat_shrunk
 
 
     def process_acolite(self, aco_prods):
